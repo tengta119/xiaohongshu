@@ -1,0 +1,12 @@
+server:
+  port: 8000 # 指定端口
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth
+          uri: lb://xiaohashu-auth
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
