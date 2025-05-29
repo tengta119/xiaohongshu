@@ -25,9 +25,10 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    @ApiOperationLog(description = "用户退出")
-    public Response<String> logout() {
-        return Response.success("退出登录");
+    @ApiOperationLog(description = "账户登出")
+    public Response<?> logout(@RequestHeader("userId") String userId) {
+        System.out.println(userId);
+        return userService.logout(Long.valueOf(userId));
     }
 
 }
