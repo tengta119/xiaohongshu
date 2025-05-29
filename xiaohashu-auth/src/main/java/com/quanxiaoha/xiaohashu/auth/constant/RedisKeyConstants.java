@@ -3,6 +3,7 @@ package com.quanxiaoha.xiaohashu.auth.constant;
 
 public class RedisKeyConstants {
 
+    public static final Long COMMON_USER_ROLE_ID = 1L;
     /**
      * 验证码 KEY 前缀
      */
@@ -49,4 +50,23 @@ public class RedisKeyConstants {
     public static String buildRolePermissionsKey(Long roleId) {
         return ROLE_PERMISSIONS_KEY_PREFIX + roleId;
     }
+
+    /**
+     * 用户对应的角色集合 KEY
+     * @param userId
+     * @return
+     */
+    public static String buildUserRoleKey(Long userId) {
+        return USER_ROLES_KEY_PREFIX + userId;
+    }
+
+    /**
+     * 构建角色对应的权限集合 KEY
+     * @param roleKey
+     * @return
+     */
+    public static String buildRolePermissionsKey(String roleKey) {
+        return ROLE_PERMISSIONS_KEY_PREFIX + roleKey;
+    }
+
 }

@@ -60,6 +60,8 @@
     <!-- 统一依赖管理 -->
     <dependencyManagement>
         <dependencies>
+
+
             <dependency>
                 <groupId>com.quanxiaoha</groupId>
                 <artifactId>xiaoha-common</artifactId>
@@ -125,6 +127,12 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
+                <version>${sa-token.version}</version>
             </dependency>
 
             <!-- Mybatis -->

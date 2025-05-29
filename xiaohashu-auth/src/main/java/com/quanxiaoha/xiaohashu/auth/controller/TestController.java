@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Slf4j
-
 public class TestController {
 
     @NacosValue(value = "${rate-limit.api.limit}", autoRefreshed = true)
