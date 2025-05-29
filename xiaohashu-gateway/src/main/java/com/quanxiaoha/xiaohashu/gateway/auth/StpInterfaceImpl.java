@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * @author lbwxxc
  * @date 2025/5/29 16:30
- * @description: TODO
+ * @description: 从 redis 获取用户对应的角色、权限
  */
 @Component
 @Slf4j
