@@ -1,2 +1,16 @@
-
+#=================================================================
+# 对象存储配置
+#=================================================================
+storage:
+    minio:
+        endpoint: http://127.0.0.1:9000
+        accessKey: quanxiaoha
+        secretKey: quanxiaoha
+    aliyun-oss:
+        # OSS 服务的访问域名，请根据实际使用的 OSS 区域替换为对应的 endpoint
+        endpoint: oss-cn-beijing.aliyuncs.com # 改成你自己的
+        # 阿里云账号的 AccessKey ID，用于身份验证
+        accessKey: LTAI5tELw6NXtdVBa2yT1FSx # 改成你自己的
+        # 阿里云账号的 AccessKey Secret，用于身份验证
+        secretKey: W4rqqdUr4J6Z2UIndFt81tkoq9Ma0t # 改成你自己的
 
