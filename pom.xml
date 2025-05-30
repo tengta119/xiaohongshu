@@ -24,6 +24,8 @@
         <module>xiaohashu-gateway</module>
         <!-- 认证服务 -->
         <module>xiaohashu-auth</module>
+        <!-- 对象存储 -->
+        <module>xiaohashu-oss</module>
     </modules>
 
     <properties>
