@@ -10,6 +10,13 @@ spring:
                       - Path=/auth/**
                   filters:
                       - StripPrefix=1
+                      
+                - id: user
+                  uri: lb://xiaohashu-user
+                  predicates:
+                    - Path=/user/**
+                  filters:
+                    - StripPrefix=1
     
     data:
         redis:

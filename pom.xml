@@ -26,6 +26,8 @@
         <module>xiaohashu-auth</module>
         <!-- 对象存储 -->
         <module>xiaohashu-oss</module>
+<!--        用户服务-->
+        <module>xiaohashu-user</module>
     </modules>
 
     <properties>
