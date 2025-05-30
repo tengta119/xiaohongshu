@@ -103,8 +103,16 @@ public class UserServiceImpl implements UserService {
                 }
                 break;
             case PASSWORD: // 密码登录
-                // todo
-
+                String password = userLoginReqVO.getPassword();
+                UserDO userDO1 = userDOMapper.selectByPhone(phone);
+                if (Objects.isNull(userDO1)) {
+                    throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+                }
+                boolean matches = passwordEncoder.matches(password, userDO1.getPassword());
+                if (!matches) {
+                    throw new BizException(ResponseCodeEnum.PHONE_OR_PASSWORD_ERROR);
+                }
+                userId = userDO1.getId();
                 break;
             default:
                 break;
