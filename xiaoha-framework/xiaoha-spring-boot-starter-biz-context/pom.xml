@@ -21,6 +21,11 @@
             <artifactId>xiaoha-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-core</artifactId>
+        </dependency>
+
         <!-- Spring 核心 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

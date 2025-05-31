@@ -21,6 +21,11 @@
             <artifactId>xiaoha-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-oss-api</artifactId>
+        </dependency>
+
         <!-- 业务接口日志组件 -->
         <dependency>
             <groupId>com.quanxiaoha</groupId>
