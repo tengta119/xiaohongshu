@@ -77,6 +77,12 @@
 
             <dependency>
                 <groupId>com.quanxiaoha</groupId>
+                <artifactId>xiaohashu-kv-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.quanxiaoha</groupId>
                 <artifactId>xiaohashu-user-api</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -107,6 +113,12 @@
                 <version>${revision}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.quanxiaoha</groupId>
+                <artifactId>xiaoha-spring-boot-starter-biz-context</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- Feign 表单提交 -->
             <dependency>
                 <groupId>io.github.openfeign.form</groupId>
@@ -114,11 +126,6 @@
                 <version>${feign-form.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.quanxiaoha</groupId>
-                <artifactId>xiaoha-spring-boot-starter-biz-context</artifactId>
-                <version>${revision}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.alibaba</groupId>

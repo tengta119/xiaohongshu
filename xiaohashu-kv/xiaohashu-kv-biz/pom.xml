@@ -21,6 +21,11 @@
             <artifactId>xiaoha-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-kv-api</artifactId>
+        </dependency>
+
         <!-- Cassandra 存储 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
