@@ -28,6 +28,8 @@
         <module>xiaohashu-oss</module>
 <!--        用户服务-->
         <module>xiaohashu-user</module>
+<!--        k-v 短文本存储服务搭建-->
+        <module>xiaohashu-kv</module>
     </modules>
 
     <properties>
