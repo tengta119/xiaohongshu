@@ -4,22 +4,17 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.quanxiaoha</groupId>
-    <artifactId>xiaoha-framework</artifactId>
+    <artifactId>xiaohashu</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   <groupId>com.quanxiaoha</groupId>
-  <artifactId>xiaoha-spring-boot-starter-biz-operationlog</artifactId>
+  <artifactId>xiaohashu-oss</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
   <name>${project.artifactId}</name>
-  <description>接口日志组件</description>
-  <dependencies>
-    <dependency>
-      <groupId>com.quanxiaoha</groupId>
-      <artifactId>xiaoha-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
-    </dependency>
-  </dependencies>
+  <description>对象存储服务</description>
+  <modules>
+    <module>xiaohashu-oss-api</module>
+    <module>xiaohashu-oss-biz</module>
+  </modules>
 </project>

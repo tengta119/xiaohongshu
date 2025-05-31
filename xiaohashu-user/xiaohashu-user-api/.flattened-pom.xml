@@ -4,22 +4,26 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.quanxiaoha</groupId>
-    <artifactId>xiaoha-framework</artifactId>
+    <artifactId>xiaohashu-user</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   <groupId>com.quanxiaoha</groupId>
-  <artifactId>xiaoha-spring-boot-starter-jackson</artifactId>
+  <artifactId>xiaohashu-user-api</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>${project.artifactId}</name>
-  <description>自定义 Jackson 配置: 支持 Java 8 新的日期 API，如 LocalDateTime、LocalDate 等等</description>
+  <description>RPC层, 供其他服务调用</description>
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-openfeign</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.quanxiaoha</groupId>
       <artifactId>xiaoha-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-autoconfigure</artifactId>
     </dependency>
   </dependencies>
 </project>
