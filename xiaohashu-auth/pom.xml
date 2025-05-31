@@ -17,6 +17,12 @@
     <description>小哈书：认证服务（负责处理用户登录、注册、账号注销等）</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-user-api</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.quanxiaoha</groupId>
             <artifactId>xiaoha-common</artifactId>

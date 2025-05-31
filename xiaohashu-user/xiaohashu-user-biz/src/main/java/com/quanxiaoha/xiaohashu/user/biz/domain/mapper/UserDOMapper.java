@@ -15,4 +15,12 @@ public interface UserDOMapper {
     int updateByPrimaryKeySelective(UserDO record);
 
     int updateByPrimaryKey(UserDO record);
+
+    /**
+     * 根据手机号查询记录
+     * @param phone
+     * @return
+     */
+    UserDO selectByPhone(String phone);
+
 }

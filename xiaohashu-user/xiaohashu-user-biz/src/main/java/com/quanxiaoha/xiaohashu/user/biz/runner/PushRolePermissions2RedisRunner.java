@@ -1,16 +1,15 @@
-package com.quanxiaoha.xiaohashu.auth.runner;
+package com.quanxiaoha.xiaohashu.user.biz.runner;
 
 import cn.hutool.core.collection.CollUtil;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.quanxiaoha.framework.common.util.JsonUtils;
-import com.quanxiaoha.xiaohashu.auth.constant.RedisKeyConstants;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.PermissionDO;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.RoleDO;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.RolePermissionDO;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.PermissionDOMapper;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.RoleDOMapper;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.RolePermissionDOMapper;
+import com.quanxiaoha.xiaohashu.user.biz.constant.RedisKeyConstants;
+import com.quanxiaoha.xiaohashu.user.biz.domain.dataobject.PermissionDO;
+import com.quanxiaoha.xiaohashu.user.biz.domain.dataobject.RoleDO;
+import com.quanxiaoha.xiaohashu.user.biz.domain.dataobject.RolePermissionDO;
+import com.quanxiaoha.xiaohashu.user.biz.domain.mapper.PermissionDOMapper;
+import com.quanxiaoha.xiaohashu.user.biz.domain.mapper.RoleDOMapper;
+import com.quanxiaoha.xiaohashu.user.biz.domain.mapper.RolePermissionDOMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;

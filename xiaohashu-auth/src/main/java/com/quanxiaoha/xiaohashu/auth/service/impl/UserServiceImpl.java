@@ -4,36 +4,24 @@ import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
 import com.google.common.base.Preconditions;
 import com.quanxiaoha.framework.biz.context.holder.LoginUserContextHolder;
-import com.quanxiaoha.framework.common.enums.DeletedEnum;
-import com.quanxiaoha.framework.common.enums.StatusEnum;
 import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.auth.constant.RedisKeyConstants;
-import com.quanxiaoha.xiaohashu.auth.constant.RoleConstants;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.RoleDO;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.UserDO;
-import com.quanxiaoha.xiaohashu.auth.domain.dataobject.UserRoleDO;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.RoleDOMapper;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.UserDOMapper;
-import com.quanxiaoha.xiaohashu.auth.domain.mapper.UserRoleDOMapper;
 import com.quanxiaoha.xiaohashu.auth.enums.LoginTypeEnum;
 import com.quanxiaoha.xiaohashu.auth.enums.ResponseCodeEnum;
 import com.quanxiaoha.xiaohashu.auth.model.vo.user.UpdatePasswordReqVO;
 import com.quanxiaoha.xiaohashu.auth.model.vo.user.UserLoginReqVO;
+import com.quanxiaoha.xiaohashu.auth.rpc.UserRpcService;
 import com.quanxiaoha.xiaohashu.auth.service.UserService;
+import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 
@@ -42,17 +30,11 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
 
     @Resource
-    private UserDOMapper userDOMapper;
-    @Resource
-    private UserRoleDOMapper userRoleDOMapper;
-    @Resource
     private RedisTemplate<String, Object> redisTemplate;
     @Resource
-    private TransactionTemplate transactionTemplate;
-    @Autowired
-    private RoleDOMapper roleDOMapper;
-    @Resource
     private PasswordEncoder passwordEncoder;
+    @Resource
+    private UserRpcService userRpcService;
 
     /**
      * 登录与注册
@@ -88,31 +70,34 @@ public class UserServiceImpl implements UserService {
                 }
 
                 // 通过手机号查询记录
-                UserDO userDO = userDOMapper.selectByPhone(phone);
+                FindUserByPhoneRspDTO userByPhone1 = userRpcService.findUserByPhone(phone);
 
-                log.info("==> 用户是否注册, phone: {}, userDO: {}", phone, JsonUtils.toJsonString(userDO));
+                log.info("==> 用户是否注册, phone: {}, userByPhone1: {}", phone, JsonUtils.toJsonString(userByPhone1));
 
                 // 判断是否注册
-                if (Objects.isNull(userDO)) {
+                if (Objects.isNull(userByPhone1)) {
                     // 若此用户还没有注册，系统自动注册该用户
                     log.info("用户注册: {}", phone);
                     userId = registerUser(phone);
                 } else {
                     // 已注册，则获取其用户 ID
-                    userId = userDO.getId();
+                    userId = userByPhone1.getId();
                 }
                 break;
             case PASSWORD: // 密码登录
                 String password = userLoginReqVO.getPassword();
-                UserDO userDO1 = userDOMapper.selectByPhone(phone);
-                if (Objects.isNull(userDO1)) {
+
+                // RPC 远程调用
+                FindUserByPhoneRspDTO userByPhone = userRpcService.findUserByPhone(phone);
+                if (Objects.isNull(userByPhone)) {
                     throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
                 }
-                boolean matches = passwordEncoder.matches(password, userDO1.getPassword());
+
+                boolean matches = passwordEncoder.matches(password, userByPhone.getPassword());
                 if (!matches) {
                     throw new BizException(ResponseCodeEnum.PHONE_OR_PASSWORD_ERROR);
                 }
-                userId = userDO1.getId();
+                userId = userByPhone.getId();
                 break;
             default:
                 break;
@@ -140,12 +125,9 @@ public class UserServiceImpl implements UserService {
     public Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO) {
         String newPassword = updatePasswordReqVO.getNewPassword();
         String encodePassword = passwordEncoder.encode(newPassword);
-        UserDO userDO = UserDO.builder()
-                .id(LoginUserContextHolder.getUserId())
-                .password(encodePassword)
-                .updateTime(LocalDateTime.now())
-                .build();
-        userDOMapper.updateByPrimaryKeySelective(userDO);
+
+        // RPC 远程调用
+        userRpcService.updatePassword(encodePassword);
         return Response.success();
     }
 
@@ -155,51 +137,12 @@ public class UserServiceImpl implements UserService {
      * @return
      */
     private Long registerUser(String phone) {
-        return transactionTemplate.execute(status -> {
-            try {
-                // 获取全局自增的小哈书 ID
-                Long xiaohashuId = redisTemplate.opsForValue().increment(RedisKeyConstants.XIAOHASHU_ID_GENERATOR_KEY);
 
-                UserDO userDO = UserDO.builder()
-                        .phone(phone)
-                        .xiaohashuId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
-                        .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
-                        .status(StatusEnum.ENABLE.getValue()) // 状态为启用
-                        .createTime(LocalDateTime.now())
-                        .updateTime(LocalDateTime.now())
-                        .isDeleted(DeletedEnum.NO.getValue()) // 逻辑删除
-                        .build();
-
-                // 添加入库
-                userDOMapper.insert(userDO);
-
-                // 获取刚刚添加入库的用户 ID
-                Long userId = userDO.getId();
-
-                // 给该用户分配一个默认角色
-                UserRoleDO userRoleDO = UserRoleDO.builder()
-                        .userId(userId)
-                        .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-                        .createTime(LocalDateTime.now())
-                        .updateTime(LocalDateTime.now())
-                        .isDeleted(DeletedEnum.NO.getValue())
-                        .build();
-                userRoleDOMapper.insert(userRoleDO);
-
-                // 将 (userId, 用户角色字符串) 存入 Redis 中
-                RoleDO roleDO = roleDOMapper.selectByPrimaryKey(RedisKeyConstants.COMMON_USER_ROLE_ID);
-                List<String> roleIds = new ArrayList<>(1);
-                roleIds.add(roleDO.getRoleKey());
-                String userRoleKey = RedisKeyConstants.buildUserRoleKey(userId);
-                redisTemplate.opsForValue().set(userRoleKey, JsonUtils.toJsonString(roleIds));
-
-                return userId;
-            } catch (Exception e) {
-                status.setRollbackOnly(); // 标记事务为回滚
-                log.error("==> 系统注册用户异常: ", e);
-                return null;
-            }
-        });
+        Long register = userRpcService.register(phone);
+        if (register == null) {
+            throw new BizException(ResponseCodeEnum.LOGIN_FAIL);
+        }
+        return register;
     }
 
 }
