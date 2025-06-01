@@ -32,9 +32,11 @@ import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +48,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -64,6 +68,9 @@ public class UserServiceImpl implements UserService {
     private RoleDOMapper roleDOMapper;
     @Resource
     DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+    @Resource(name = "taskExecutor")
+    Executor threadPoolTaskExecutor;
+
     /**
      * 更新用户信息
      *
@@ -241,12 +248,28 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO) {
+
+        String userInfoKey = RedisKeyConstants.buildUserInfoKey(findUserByIdReqDTO.getId());
+        String userInfoRedisValue = (String)redisTemplate.opsForValue().get(userInfoKey);
+        if (Objects.nonNull(userInfoRedisValue)) {
+            FindUserByIdRspDTO findUserByIdRspDTO = JsonUtils.parseObject(userInfoRedisValue, FindUserByIdRspDTO.class);
+            log.info("==> 从 redis 查询到用户信息, id: {}, userInfo: {}", findUserByIdReqDTO.getId(), findUserByIdRspDTO);
+            return Response.success(findUserByIdRspDTO);
+        }
+
         Long id = findUserByIdReqDTO.getId();
         UserDO userDO = userDOMapper.selectByPrimaryKey(id);
         if (Objects.isNull(userDO)) {
             throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
         }
         FindUserByIdRspDTO findUserByIdRspDTO = new FindUserByIdRspDTO(userDO.getId(), userDO.getNickname(), userDO.getAvatar());
+
+        // 异步将用户信息存入 Redis 缓存，提升响应速度
+        threadPoolTaskExecutor.execute(() -> {
+            long expire = 60 * 60 * 24 + RandomUtils.nextInt(0, 60 * 60 * 24);
+            redisTemplate.opsForValue().set(userInfoKey, JsonUtils.toJsonString(findUserByIdRspDTO), expire, TimeUnit.SECONDS);
+        });
+
         return Response.success(findUserByIdRspDTO);
     }
 }

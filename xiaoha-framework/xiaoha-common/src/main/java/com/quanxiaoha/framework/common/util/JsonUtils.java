@@ -8,6 +8,7 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.quanxiaoha.framework.common.constant.DateConstants;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,4 +48,20 @@ public class JsonUtils {
        return OBJECT_MAPPER.writeValueAsString(obj);
     }
 
+    /**
+     * 将 JSON 字符串转换为对象
+     *
+     * @param jsonStr
+     * @param clazz
+     * @return
+     * @param <T>
+     */
+    @SneakyThrows
+    public static <T> T parseObject(String jsonStr, Class<T> clazz) {
+        if (StringUtils.isBlank(jsonStr)) {
+            return null;
+        }
+
+        return OBJECT_MAPPER.readValue(jsonStr, clazz);
+    }
 }
