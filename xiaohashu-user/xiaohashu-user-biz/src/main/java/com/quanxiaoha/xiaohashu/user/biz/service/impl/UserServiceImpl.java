@@ -1,5 +1,7 @@
 package com.quanxiaoha.xiaohashu.user.biz.service.impl;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.quanxiaoha.framework.biz.context.holder.LoginUserContextHolder;
 import com.quanxiaoha.framework.common.enums.DeletedEnum;
@@ -70,6 +72,12 @@ public class UserServiceImpl implements UserService {
     DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
     @Resource(name = "taskExecutor")
     Executor threadPoolTaskExecutor;
+
+    private static final Cache<Long, FindUserByIdRspDTO> LOCAL_CACHE = Caffeine.newBuilder()
+            .initialCapacity(10000) // 设置初始容量为 10000 个条目
+            .maximumSize(10000) // 设置缓存的最大容量为 10000 个条目
+            .expireAfterWrite(5, TimeUnit.MINUTES) // 5 分钟后过期
+            .build();
 
     /**
      * 更新用户信息
@@ -249,11 +257,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO) {
 
+        // 先从本地缓存中查询
+        FindUserByIdRspDTO findUserByIdRspDTOLocalCache = LOCAL_CACHE.getIfPresent(findUserByIdReqDTO.getId());
+        if (Objects.nonNull(findUserByIdRspDTOLocalCache)) {
+            log.info("==> 命中了本地缓存；{}", findUserByIdRspDTOLocalCache);
+            return Response.success(findUserByIdRspDTOLocalCache);
+        }
+
         String userInfoKey = RedisKeyConstants.buildUserInfoKey(findUserByIdReqDTO.getId());
         String userInfoRedisValue = (String)redisTemplate.opsForValue().get(userInfoKey);
         if (Objects.nonNull(userInfoRedisValue)) {
             FindUserByIdRspDTO findUserByIdRspDTO = JsonUtils.parseObject(userInfoRedisValue, FindUserByIdRspDTO.class);
             log.info("==> 从 redis 查询到用户信息, id: {}, userInfo: {}", findUserByIdReqDTO.getId(), findUserByIdRspDTO);
+            LOCAL_CACHE.put(findUserByIdReqDTO.getId(), findUserByIdRspDTO);
             return Response.success(findUserByIdRspDTO);
         }
 
