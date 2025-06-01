@@ -8,6 +8,7 @@ import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.framework.common.util.ParamUtils;
+import com.quanxiaoha.xiaohashu.distributed.id.generator.api.DistributedIdGeneratorFeignApi;
 import com.quanxiaoha.xiaohashu.oss.api.FileFeignApi;
 import com.quanxiaoha.xiaohashu.user.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.user.biz.constant.RoleConstants;
@@ -20,6 +21,7 @@ import com.quanxiaoha.xiaohashu.user.biz.domain.mapper.UserRoleDOMapper;
 import com.quanxiaoha.xiaohashu.user.biz.enums.ResponseCodeEnum;
 import com.quanxiaoha.xiaohashu.user.biz.enums.SexEnum;
 import com.quanxiaoha.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
+import com.quanxiaoha.xiaohashu.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.user.biz.rpc.OssRpcService;
 import com.quanxiaoha.xiaohashu.user.biz.service.UserService;
 import com.quanxiaoha.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
@@ -56,12 +58,10 @@ public class UserServiceImpl implements UserService {
     private UserRoleDOMapper userRoleDOMapper;
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
-    @Resource
-    private TransactionTemplate transactionTemplate;
     @Autowired
     private RoleDOMapper roleDOMapper;
     @Resource
-    private PasswordEncoder passwordEncoder;
+    DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
     /**
      * 更新用户信息
      *
@@ -166,10 +166,12 @@ public class UserServiceImpl implements UserService {
         }
 
         // 否则注册新用户
-        // 获取全局自增的小哈书 ID
-        Long xiaohashuId = redisTemplate.opsForValue().increment(RedisKeyConstants.XIAOHASHU_ID_GENERATOR_KEY);
-
+        // 分布式 ID
+        String xiaohashuId = distributedIdGeneratorRpcService.getXiaohashuId();
+        // 分布式 ID
+        Long userId = Long.valueOf(distributedIdGeneratorRpcService.getUserId());
         UserDO userDO = UserDO.builder()
+                .id(userId)
                 .phone(phone)
                 .xiaohashuId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
                 .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
@@ -182,8 +184,6 @@ public class UserServiceImpl implements UserService {
         // 添加入库
         userDOMapper.insert(userDO);
 
-        // 获取刚刚添加入库的用户 ID
-        Long userId = userDO.getId();
 
         // 给该用户分配一个默认角色
         UserRoleDO userRoleDO = UserRoleDO.builder()

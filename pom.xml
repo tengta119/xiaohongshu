@@ -79,6 +79,13 @@
 
             <dependency>
                 <groupId>com.quanxiaoha</groupId>
+                <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.quanxiaoha</groupId>
                 <artifactId>xiaohashu-kv-api</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -127,7 +134,6 @@
                 <artifactId>feign-form</artifactId>
                 <version>${feign-form.version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>com.alibaba</groupId>
