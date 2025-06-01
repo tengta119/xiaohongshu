@@ -5,6 +5,8 @@ import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.kv.api.KeyValueFeignApi;
 import com.quanxiaoha.xiaohashu.kv.dto.req.AddNoteContentReqDTO;
 import com.quanxiaoha.xiaohashu.kv.dto.req.DeleteNoteContentReqDTO;
+import com.quanxiaoha.xiaohashu.kv.dto.req.FindNoteContentReqDTO;
+import com.quanxiaoha.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
@@ -44,5 +46,15 @@ public class KeyValueRpcService {
         DeleteNoteContentReqDTO deleteNoteContentReqDTO = new DeleteNoteContentReqDTO(uuid);
         Response<?> response = keyValueFeignApi.deleteNoteContent(deleteNoteContentReqDTO);
         return Objects.nonNull(response) && response.isSuccess();
+    }
+
+    public FindNoteContentRspDTO findNoteContent(String uuid) {
+        Response<FindNoteContentRspDTO> response = keyValueFeignApi.findNoteContent(new FindNoteContentReqDTO(uuid));
+
+        if (Objects.isNull(response) || !response.isSuccess() || Objects.isNull(response.getData())) {
+            return null;
+        }
+
+        return response.getData();
     }
 }

@@ -39,6 +39,7 @@ public interface UserFeignApi {
     @PostMapping(value = PREFIX + "/password/update")
     Response<?> updatePassword(@RequestBody @Validated UpdateUserPasswordReqDTO updateUserPasswordReqDTO);
 
+
     @PostMapping( value = PREFIX + "/findById")
     Response<FindUserByIdRspDTO> findById(@Validated @RequestBody FindUserByIdReqDTO findUserByIdReqDTO);
 }

@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 import com.quanxiaoha.framework.biz.context.holder.LoginUserContextHolder;
 import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteDO;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
@@ -13,10 +14,14 @@ import com.quanxiaoha.xiaohashu.note.biz.enums.NoteStatusEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.NoteTypeEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.NoteVisibleEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.ResponseCodeEnum;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.KeyValueRpcService;
+import com.quanxiaoha.xiaohashu.note.biz.rpc.UserRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.service.NoteService;
+import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +49,8 @@ public class NoteServiceImpl implements NoteService {
     private NoteDOMapper noteDOMapper;
     @Resource
     private TopicDOMapper topicDOMapper;
+    @Resource
+    UserRpcService userRpcService;
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -128,5 +135,71 @@ public class NoteServiceImpl implements NoteService {
         }
 
         return Response.success();
+    }
+
+    @Override
+    public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
+        Long id = findNoteDetailReqVO.getId();
+        NoteDO noteDO = noteDOMapper.selectByPrimaryKey(id);
+        String contentUuid = noteDO.getContentUuid();
+        // RPC 远程调用笔记服务
+        FindNoteContentRspDTO noteContent = keyValueRpcService.findNoteContent(contentUuid);
+        if (Objects.isNull(noteContent)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+        String content = noteContent.getContent();
+
+        Long creatorId = noteDO.getCreatorId();
+        // RPC 远程用户服务调用
+        FindUserByIdRspDTO findUserByIdRspDTO = userRpcService.findById(creatorId);
+
+        Integer visible = noteDO.getVisible();
+        // 当前登录的用户
+        Long userId = LoginUserContextHolder.getUserId();
+        checkNoteVisible(visible, userId, creatorId);
+
+        // 笔记类型
+        Integer noteType = noteDO.getType();
+        // 图文笔记图片链接(字符串)
+        String imgUrisStr = noteDO.getImgUris();
+        // 图文笔记图片链接(集合)
+        List<String> imgUris = null;
+        // 如果查询的是图文笔记，需要将图片链接的逗号分隔开，转换成集合
+        if (Objects.equals(noteType, NoteTypeEnum.IMAGE_TEXT.getCode())
+                && StringUtils.isNotBlank(imgUrisStr)) {
+            imgUris = List.of(imgUrisStr.split(","));
+        }
+
+        // 构建返参 VO 实体类
+        FindNoteDetailRspVO findNoteDetailRspVO = FindNoteDetailRspVO.builder()
+                .id(noteDO.getId())
+                .type(noteDO.getType())
+                .title(noteDO.getTitle())
+                .content(content)
+                .imgUris(imgUris)
+                .topicId(noteDO.getTopicId())
+                .topicName(noteDO.getTopicName())
+                .creatorId(noteDO.getCreatorId())
+                .creatorName(findUserByIdRspDTO.getNickName())
+                .avatar(findUserByIdRspDTO.getAvatar())
+                .videoUri(noteDO.getVideoUri())
+                .updateTime(noteDO.getUpdateTime())
+                .visible(noteDO.getVisible())
+                .build();
+
+        return Response.success(findNoteDetailRspVO);
+    }
+
+    /**
+     * 校验笔记的可见性
+     * @param visible 是否可见
+     * @param currUserId 当前用户 ID
+     * @param creatorId 笔记创建者
+     */
+    private void checkNoteVisible(Integer visible, Long currUserId, Long creatorId) {
+        if (Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
+                && !Objects.equals(currUserId, creatorId)) { // 仅自己可见, 并且访问用户为笔记创建者
+            throw new BizException(ResponseCodeEnum.NOTE_PRIVATE);
+        }
     }
 }

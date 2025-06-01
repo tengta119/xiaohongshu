@@ -2,6 +2,8 @@ package com.quanxiaoha.xiaohashu.note.biz.service;
 
 
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
 
 /**
@@ -19,4 +21,11 @@ public interface NoteService {
      * @return
      */
     Response<?> publishNote(PublishNoteReqVO publishNoteReqVO);
+
+    /**
+     * 笔记详情
+     * @param findNoteDetailReqVO
+     * @return
+     */
+    Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO);
 }
