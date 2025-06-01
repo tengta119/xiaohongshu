@@ -1,12 +1,17 @@
 package com.quanxiaoha.xiaohashu.note.biz.service.impl;
 
 
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.common.utils.CollectionUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.quanxiaoha.framework.biz.context.holder.LoginUserContextHolder;
 import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
+import com.quanxiaoha.xiaohashu.note.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteDO;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
@@ -25,12 +30,15 @@ import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author lbwxxc
@@ -51,6 +59,16 @@ public class NoteServiceImpl implements NoteService {
     private TopicDOMapper topicDOMapper;
     @Resource
     UserRpcService userRpcService;
+    @Resource(name = "taskExecutor")
+    private Executor executor;
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
+
+    private final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
+            .initialCapacity(50)
+            .maximumSize(100)
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .build();
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -139,8 +157,39 @@ public class NoteServiceImpl implements NoteService {
 
     @Override
     public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
-        Long id = findNoteDetailReqVO.getId();
-        NoteDO noteDO = noteDOMapper.selectByPrimaryKey(id);
+
+        Long noteId = findNoteDetailReqVO.getId();
+
+        // 先从本地缓存中查询
+        String findNoteDetailRspVOStrLocalCache = LOCAL_CACHE.getIfPresent(noteId);
+        if (StringUtils.isNotBlank(findNoteDetailRspVOStrLocalCache)) {
+            FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(findNoteDetailRspVOStrLocalCache, FindNoteDetailRspVO.class);
+            log.info("==> 命中了本地缓存；{}", findNoteDetailRspVOStrLocalCache);
+            // 可见性校验
+            checkNoteVisibleFromVO(LoginUserContextHolder.getUserId(), findNoteDetailRspVO);
+            return Response.success(findNoteDetailRspVO);
+        }
+
+        // 从 Redis 缓存中获取
+        String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+        String noteDetailJson = redisTemplate.opsForValue().get(noteDetailRedisKey);
+
+        // 若缓存中有该笔记的数据，则直接返回
+        if (StringUtils.isNotBlank(noteDetailJson)) {
+            FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(noteDetailJson, FindNoteDetailRspVO.class);
+            // 可见性校验
+            if (Objects.nonNull(findNoteDetailRspVO)) {
+                Integer visible = findNoteDetailRspVO.getVisible();
+                checkNoteVisible(visible, noteId, findNoteDetailRspVO.getCreatorId());
+            }
+            log.info("==> 从 redis 中获取笔记的详细信息  noteDetailJson:{}", noteDetailJson);
+            // 写入本地缓存
+            LOCAL_CACHE.put(noteId,
+                    Objects.isNull(findNoteDetailRspVO) ? "null" : JsonUtils.toJsonString(findNoteDetailRspVO));
+            return Response.success(findNoteDetailRspVO);
+        }
+
+        NoteDO noteDO = noteDOMapper.selectByPrimaryKey(noteId);
         String contentUuid = noteDO.getContentUuid();
         // RPC 远程调用笔记服务
         FindNoteContentRspDTO noteContent = keyValueRpcService.findNoteContent(contentUuid);
@@ -186,7 +235,12 @@ public class NoteServiceImpl implements NoteService {
                 .updateTime(noteDO.getUpdateTime())
                 .visible(noteDO.getVisible())
                 .build();
+        executor.execute(() -> {
 
+            String jsonStringFindNoteDetailRspVO = JsonUtils.toJsonString(findNoteDetailRspVO);
+            long expireSeconds = 60 + RandomUtil.randomInt(60);
+            redisTemplate.opsForValue().set(noteDetailRedisKey, jsonStringFindNoteDetailRspVO,  expireSeconds, TimeUnit.SECONDS);
+        });
         return Response.success(findNoteDetailRspVO);
     }
 
@@ -200,6 +254,18 @@ public class NoteServiceImpl implements NoteService {
         if (Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(currUserId, creatorId)) { // 仅自己可见, 并且访问用户为笔记创建者
             throw new BizException(ResponseCodeEnum.NOTE_PRIVATE);
+        }
+    }
+
+    /**
+     * 校验笔记的可见性（针对 VO 实体类）
+     * @param userId
+     * @param findNoteDetailRspVO
+     */
+    private void checkNoteVisibleFromVO(Long userId, FindNoteDetailRspVO findNoteDetailRspVO) {
+        if (Objects.nonNull(findNoteDetailRspVO)) {
+            Integer visible = findNoteDetailRspVO.getVisible();
+            checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
         }
     }
 }
