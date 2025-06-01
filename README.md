@@ -641,6 +641,110 @@ ZooKeeper 的应用场景：
 - **分布式锁**：ZooKeeper 提供了一种机制来实现分布式环境下的互斥访问，保证多个进程之间数据操作的正确性。
 - **队列管理**：ZooKeeper 可以用来实现分布式队列，如任务调度队列或消息队列。
 
+
+
+# 笔记服务搭建与开发
+
+
+
+- **笔记详情浏览**：可查看用户发布的笔记详情，如图片、视频、标题、正文等；
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172344556031228)
+
+- **发布笔记**：允许用户上传文本、图片、视频等内容，并添加标题、话题和位置信息；
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172344918202730)
+
+- **编辑笔记**：用户可以对已发布的笔记进行修改，再发布；
+
+- **仅对自己可见**：针对发布成功的笔记，可以进行权限设置 —— 仅对自己可见，其他人则无法查看该笔记；
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172344627480751)
+
+- **笔记置顶**：置顶某篇笔记，访问用户主页时，被置顶的笔记处于最前面；
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172344609322812)
+
+- **笔记删除**：可以对已发布的笔记进行删除处理；
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172344614726819)
+
+* 频道与话题
+
+在笔记发布页中，可点击**参与话题**。为笔记添加话题，可以或得平台更高的曝光量，让更多人看到。如下图所示，话题归属于频道之下，每个频道下都有一些常用的话题，可以被选择：
+
+![img](https://img.quanxiaoha.com/quanxiaoha/172344655471973)
+
+频道表
+
+```sql
+CREATE TABLE `t_channel` (
+  `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(12) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '频道名称',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '逻辑删除(0：未删除 1：已删除)',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='频道表';
+
+```
+
+话题表
+
+```sql
+CREATE TABLE `t_topic` (
+  `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(12) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '话题名称',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '逻辑删除(0：未删除 1：已删除)',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='话题表';
+
+```
+
+频道-话题关联表
+
+```sql
+CREATE TABLE `t_channel_topic_rel` (
+  `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `channel_id` bigint(11) unsigned NOT NULL COMMENT '频道ID',
+  `topic_id` bigint(11) unsigned NOT NULL COMMENT '话题ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='频道-话题关联表';
+
+```
+
+笔记表
+
+```sql
+CREATE TABLE `t_note` (
+  `id` bigint(11) unsigned NOT NULL COMMENT '主键ID',
+  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
+  `is_content_empty` bit(1) NOT NULL DEFAULT b'0' COMMENT '内容是否为空(0：不为空 1：空)',
+  `creator_id` bigint(11) unsigned NOT NULL COMMENT '发布者ID',
+  `topic_id` bigint(11) unsigned DEFAULT NULL COMMENT '话题ID',
+  `topic_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '话题名称',
+  `is_top` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否置顶(0：未置顶 1：置顶)',
+  `type` tinyint(2) DEFAULT '0' COMMENT '类型(0：图文 1：视频)',
+  `img_uris` varchar(660) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '笔记图片链接(逗号隔开)',
+  `video_uri` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频链接',
+  `visible` tinyint(2) DEFAULT '0' COMMENT '可见范围(0：公开,所有人可见 1：仅对自己可见)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  `status` tinyint(2) NOT NULL DEFAULT '0' COMMENT '状态(0：待审核 1：正常展示 2：被删除(逻辑删除) 3：被下架)',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_creator_id` (`creator_id`),
+  KEY `idx_topic_id` (`topic_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='笔记表';
+
+```
+
+
+
 # BUG
 
 ---
@@ -698,7 +802,13 @@ ZooKeeper 的应用场景：
 
 如果上述方法都不能解决问题，你可能需要查看 IDE 的日志文件以获取更详细的错误信息，或者考虑是否是特定插件引起的问题（可以尝试禁用最近安装或更新的插件）。
 
+
+
 ---
+
+
+
+
 
 ![image-20250601104545441](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250601104545441.png)
 
