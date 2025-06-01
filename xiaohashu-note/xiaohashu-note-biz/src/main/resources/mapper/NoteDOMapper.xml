@@ -15,11 +15,12 @@
     <result column="visible" jdbcType="TINYINT" property="visible" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
-    <result column="status" jdbcType="BIT" property="status" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="content_uuid" jdbcType="VARCHAR" property="contentUuid" />
   </resultMap>
   <sql id="Base_Column_List">
     id, title, is_content_empty, creator_id, topic_id, topic_name, is_top, `type`, img_uris, 
-    video_uri, visible, create_time, update_time, `status`
+    video_uri, visible, create_time, update_time, `status`, content_uuid
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
@@ -36,12 +37,12 @@
       creator_id, topic_id, topic_name, 
       is_top, `type`, img_uris, video_uri, 
       visible, create_time, update_time, 
-      `status`)
+      `status`, content_uuid)
     values (#{id,jdbcType=BIGINT}, #{title,jdbcType=VARCHAR}, #{isContentEmpty,jdbcType=BIT}, 
       #{creatorId,jdbcType=BIGINT}, #{topicId,jdbcType=BIGINT}, #{topicName,jdbcType=VARCHAR}, 
       #{isTop,jdbcType=BIT}, #{type,jdbcType=TINYINT}, #{imgUris,jdbcType=VARCHAR}, #{videoUri,jdbcType=VARCHAR}, 
       #{visible,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
-      #{status,jdbcType=BIT})
+      #{status,jdbcType=TINYINT}, #{contentUuid,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteDO">
     insert into t_note
@@ -88,6 +89,9 @@
       <if test="status != null">
         `status`,
       </if>
+      <if test="contentUuid != null">
+        content_uuid,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="id != null">
@@ -130,7 +134,10 @@
         #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="status != null">
-        #{status,jdbcType=BIT},
+        #{status,jdbcType=TINYINT},
+      </if>
+      <if test="contentUuid != null">
+        #{contentUuid,jdbcType=VARCHAR},
       </if>
     </trim>
   </insert>
@@ -174,7 +181,10 @@
         update_time = #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="status != null">
-        `status` = #{status,jdbcType=BIT},
+        `status` = #{status,jdbcType=TINYINT},
+      </if>
+      <if test="contentUuid != null">
+        content_uuid = #{contentUuid,jdbcType=VARCHAR},
       </if>
     </set>
     where id = #{id,jdbcType=BIGINT}
@@ -193,7 +203,8 @@
       visible = #{visible,jdbcType=TINYINT},
       create_time = #{createTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
-      `status` = #{status,jdbcType=BIT}
+      `status` = #{status,jdbcType=TINYINT},
+      content_uuid = #{contentUuid,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
 </mapper>
