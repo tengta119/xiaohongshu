@@ -24,9 +24,11 @@ import com.quanxiaoha.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.quanxiaoha.xiaohashu.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.user.biz.rpc.OssRpcService;
 import com.quanxiaoha.xiaohashu.user.biz.service.UserService;
+import com.quanxiaoha.xiaohashu.user.dto.req.FindUserByIdReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.RegisterUserReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -235,5 +237,16 @@ public class UserServiceImpl implements UserService {
                 .build();
         userDOMapper.updateByPrimaryKeySelective(userDO);
         return Response.success();
+    }
+
+    @Override
+    public Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO) {
+        Long id = findUserByIdReqDTO.getId();
+        UserDO userDO = userDOMapper.selectByPrimaryKey(id);
+        if (Objects.isNull(userDO)) {
+            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+        }
+        FindUserByIdRspDTO findUserByIdRspDTO = new FindUserByIdRspDTO(userDO.getId(), userDO.getNickname(), userDO.getAvatar());
+        return Response.success(findUserByIdRspDTO);
     }
 }

@@ -3,9 +3,11 @@ package com.quanxiaoha.xiaohashu.user.api;
 
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.user.constants.ApiConstants;
+import com.quanxiaoha.xiaohashu.user.dto.req.FindUserByIdReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.RegisterUserReqDTO;
 import com.quanxiaoha.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.validation.annotation.Validated;
@@ -36,4 +38,7 @@ public interface UserFeignApi {
      */
     @PostMapping(value = PREFIX + "/password/update")
     Response<?> updatePassword(@RequestBody @Validated UpdateUserPasswordReqDTO updateUserPasswordReqDTO);
+
+    @PostMapping( value = PREFIX + "/findById")
+    Response<FindUserByIdRspDTO> findById(@Validated @RequestBody FindUserByIdReqDTO findUserByIdReqDTO);
 }
