@@ -30,6 +30,8 @@
         <module>xiaohashu-user</module>
 <!--        k-v 短文本存储服务搭建-->
         <module>xiaohashu-kv</module>
+<!--        分布式 ID -->
+        <module>xiaohashu-distributed-id-generator</module>
     </modules>
 
     <properties>
