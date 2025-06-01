@@ -5,6 +5,7 @@ import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
 
 /**
  * @author 1192299468@qq.com
@@ -28,4 +29,11 @@ public interface NoteService {
      * @return
      */
     Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO);
+
+    /**
+     * 笔记更新
+     * @param updateNoteReqVO
+     * @return
+     */
+    Response<?> updateNote(UpdateNoteReqVO updateNoteReqVO);
 }

@@ -6,10 +6,12 @@ import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
 import com.quanxiaoha.xiaohashu.note.biz.service.NoteService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,5 +40,11 @@ public class NoteController {
     @ApiOperationLog(description = "笔记详情")
     public Response<FindNoteDetailRspVO> findNoteDetail(@Valid @RequestBody FindNoteDetailReqVO findNoteDetailReqVO){
         return noteService.findNoteDetail(findNoteDetailReqVO);
+    }
+
+    @PostMapping(value = "/update")
+    @ApiOperationLog(description = "笔记修改")
+    public Response<?> updateNote(@Validated @RequestBody UpdateNoteReqVO updateNoteReqVO) {
+        return noteService.updateNote(updateNoteReqVO);
     }
 }
