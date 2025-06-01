@@ -17,6 +17,14 @@ spring:
                     - Path=/user/**
                   filters:
                     - StripPrefix=1
+                    
+                - id: note
+                  uri: lb://xiaohashu-note
+                  predicates:
+                    - Path=/note/**
+                  filters:
+                    - StripPrefix=1
+                
     
     data:
         redis:
