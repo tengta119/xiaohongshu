@@ -16,6 +16,13 @@
     <description>用户关系服务业务模块</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-user-api</artifactId>
+        </dependency>
+
+
         <dependency>
             <groupId>com.quanxiaoha</groupId>
             <artifactId>xiaoha-common</artifactId>

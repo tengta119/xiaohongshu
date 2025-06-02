@@ -25,6 +25,13 @@ spring:
                   filters:
                     - StripPrefix=1
                 
+                - id: relation
+                  uri: lb://xiaohashu-user-relation
+                  predicates:
+                    - Path=/relation/**
+                  filters:
+                    - StripPrefix=1
+                    
     
     data:
         redis:
