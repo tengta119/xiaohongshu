@@ -12,6 +12,7 @@ import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
+import com.quanxiaoha.xiaohashu.note.biz.constant.MQConstants;
 import com.quanxiaoha.xiaohashu.note.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteDO;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
@@ -32,6 +33,7 @@ import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,8 @@ public class NoteServiceImpl implements NoteService {
     private Executor executor;
     @Resource
     private RedisTemplate<String, String> redisTemplate;
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
 
     private final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
             .initialCapacity(50)
@@ -316,7 +320,10 @@ public class NoteServiceImpl implements NoteService {
         redisTemplate.delete(noteDetailRedisKey);
 
         // 删除本地缓存
-        LOCAL_CACHE.invalidate(noteId);
+        //LOCAL_CACHE.invalidate(noteId);
+
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("====> MQ：删除笔记本地缓存发送成功...");
 
         // 笔记内容更新
         // 查询此篇笔记内容对应的 UUID
@@ -367,5 +374,13 @@ public class NoteServiceImpl implements NoteService {
             Integer visible = findNoteDetailRspVO.getVisible();
             checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
         }
+    }
+
+    /**
+     * 删除本地笔记缓存
+     * @param noteId
+     */
+    public void deleteNoteLocalCache(Long noteId) {
+        LOCAL_CACHE.invalidate(noteId);
     }
 }

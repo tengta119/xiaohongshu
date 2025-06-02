@@ -74,6 +74,7 @@
         <jaxb-runtime.version>2.3.3</jaxb-runtime.version>
         <feign-form.version>3.8.0</feign-form.version>
         <caffeine.version>3.1.8</caffeine.version>
+        <rocketmq.version>2.2.3</rocketmq.version>
     </properties>
 
     <!-- 统一依赖管理 -->
@@ -129,6 +130,13 @@
                 <groupId>com.quanxiaoha</groupId>
                 <artifactId>xiaoha-spring-boot-starter-biz-context</artifactId>
                 <version>${revision}</version>
+            </dependency>
+
+            <!-- Rocket MQ -->
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq.version}</version>
             </dependency>
 
             <!-- Caffeine 本地缓存 -->
