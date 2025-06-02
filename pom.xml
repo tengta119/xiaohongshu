@@ -34,6 +34,8 @@
         <module>xiaohashu-distributed-id-generator</module>
 <!--        笔记服务-->
         <module>xiaohashu-note</module>
+<!--        用户关系服务-->
+        <module>xiaohashu-user-relation</module>
     </modules>
 
     <properties>

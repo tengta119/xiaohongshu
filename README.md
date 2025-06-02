@@ -846,7 +846,7 @@ CREATE TABLE `t_note` (
 
 
 
-# 消息中间件 RocketMQ
+# 十四、消息中间件 RocketMQ
 
 ## 什么是 MQ
 
@@ -945,6 +945,72 @@ CREATE TABLE `t_note` (
 > - 笔记更新接口中，先删除 Redis 缓存，再更新数据库；
 > - 若此时笔记查询接口，将老数据同步到了 Redis 中；
 > - 笔记更新接口，会再删除一次 Redis 缓存，防止老数据回填；
+
+
+
+# 十五、用户关系服务搭建与开发
+
+
+
+## 职责说明
+
+用户关系服务主要负责的职责如下：
+
+- **关注与取关接口**：用户 A 可以关注用户 B ，关注成功后，也可以取关用户 B。
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172534725879358)
+
+- **查询某个用户的关注列表接口**：当用户 A 关注了用户 B 后，用户 A 的关注列表中就会出现用户 B。
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172534770375426)
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172534775422889)
+
+- **查询某个用户的粉丝列表接口**：当用户 A 关注了用户 B 后，用户 B 的粉丝列表中就会出现用户 A。
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172534784412344)
+
+- **查询用户关系接口**：即查询用户 A 是否已经关注了用户 B。如下图所示，当用户 A 关注了用户 B 后，再次进入用户 B 的主页后，原本展示的关注按钮，会变成已关注的按钮，这个数据需要告诉给前端，以便展示不同的 UI：
+
+    ![img](https://img.quanxiaoha.com/quanxiaoha/172534794422315)
+
+## 表设计
+
+了解了用户关系服务的职责后，我们设计一下相关表结构。
+
+### 关注表
+
+首先是用户关注表，建表语句如下：
+
+```sql
+CREATE TABLE `t_following` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+  `following_user_id` bigint unsigned NOT NULL COMMENT '关注的用户ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户关注表';
+
+```
+
+```sql
+CREATE TABLE `t_fans` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+  `fans_user_id` bigint unsigned NOT NULL COMMENT '粉丝的用户ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户粉丝表';
+
+```
+
+
+
+
+
+
 
 
 
