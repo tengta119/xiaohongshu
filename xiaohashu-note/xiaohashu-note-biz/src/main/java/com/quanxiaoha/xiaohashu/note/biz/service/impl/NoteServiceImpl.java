@@ -160,7 +160,7 @@ public class NoteServiceImpl implements NoteService {
             }
         }
 
-        return Response.success();
+        return Response.success(noteDO);
     }
 
     @Override
@@ -377,6 +377,34 @@ public class NoteServiceImpl implements NoteService {
         noteDO.setStatus(NoteStatusEnum.DELETED.getCode());
         int count = noteDOMapper.updateByPrimaryKeySelective(noteDO);
         // 影响的行数为 0 ，则表示该笔记不存在
+        if (count == 0) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        String buildNoteDetailKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+        redisTemplate.delete(buildNoteDetailKey);
+
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("====> MQ：删除笔记本地缓存发送成功...");
+
+        return Response.success();
+    }
+
+    @Override
+    public Response<?> topNote(TopNoteReqVO topNoteReqVO) {
+        Long noteId = topNoteReqVO.getId();
+        Boolean isTop = topNoteReqVO.getIsTop();
+        // 当前用户
+        Long curUserId = LoginUserContextHolder.getUserId();
+
+        NoteDO noteDO = NoteDO.builder()
+                .id(noteId)
+                .isTop(isTop)
+                .creatorId(curUserId)
+                .updateTime(LocalDateTime.now())
+                .build();
+
+        int count = noteDOMapper.updateIsTop(noteDO);
         if (count == 0) {
             throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
         }

@@ -46,4 +46,11 @@ public interface NoteService {
      * @return
      */
     Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
+
+    /**
+     * 笔记置顶 / 取消置顶
+     * @param topNoteReqVO
+     * @return
+     */
+    Response<?> topNote(TopNoteReqVO topNoteReqVO);
 }
