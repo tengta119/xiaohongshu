@@ -289,6 +289,19 @@ public class NoteServiceImpl implements NoteService {
                 break;
         }
 
+        // 当前登录用户 ID
+        Long currUserId = LoginUserContextHolder.getUserId();
+        NoteDO selectNoteDO = noteDOMapper.selectByPrimaryKey(noteId);
+
+        // 笔记不存在
+        if (Objects.isNull(selectNoteDO)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        // 判断权限：非笔记发布者不允许更新笔记
+        if (!Objects.equals(currUserId, selectNoteDO.getCreatorId())) {
+            throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
+        }
 
         // 话题
         Long topicId = updateNoteReqVO.getTopicId();
@@ -381,6 +394,20 @@ public class NoteServiceImpl implements NoteService {
             throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
         }
 
+        // 当前登录用户 ID
+        Long currUserId = LoginUserContextHolder.getUserId();
+        NoteDO selectNoteDO = noteDOMapper.selectByPrimaryKey(noteId);
+
+        // 笔记不存在
+        if (Objects.isNull(selectNoteDO)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        // 判断权限：非笔记发布者不允许更新笔记
+        if (!Objects.equals(currUserId, selectNoteDO.getCreatorId())) {
+            throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
+        }
+
         String buildNoteDetailKey = RedisKeyConstants.buildNoteDetailKey(noteId);
         redisTemplate.delete(buildNoteDetailKey);
 
@@ -396,6 +423,20 @@ public class NoteServiceImpl implements NoteService {
         Boolean isTop = topNoteReqVO.getIsTop();
         // 当前用户
         Long curUserId = LoginUserContextHolder.getUserId();
+
+        // 当前登录用户 ID
+        Long currUserId = LoginUserContextHolder.getUserId();
+        NoteDO selectNoteDO = noteDOMapper.selectByPrimaryKey(noteId);
+
+        // 笔记不存在
+        if (Objects.isNull(selectNoteDO)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        // 判断权限：非笔记发布者不允许更新笔记
+        if (!Objects.equals(currUserId, selectNoteDO.getCreatorId())) {
+            throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
+        }
 
         NoteDO noteDO = NoteDO.builder()
                 .id(noteId)
