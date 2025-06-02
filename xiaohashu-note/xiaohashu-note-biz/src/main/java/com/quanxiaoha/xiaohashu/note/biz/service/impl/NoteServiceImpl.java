@@ -21,10 +21,7 @@ import com.quanxiaoha.xiaohashu.note.biz.enums.NoteStatusEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.NoteTypeEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.NoteVisibleEnum;
 import com.quanxiaoha.xiaohashu.note.biz.enums.ResponseCodeEnum;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.*;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.KeyValueRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.UserRpcService;
@@ -368,6 +365,29 @@ public class NoteServiceImpl implements NoteService {
 
         return Response.success();
 
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO) {
+
+        Long noteId = deleteNoteReqVO.getId();
+        NoteDO noteDO = new NoteDO();
+        noteDO.setId(noteId);
+        noteDO.setStatus(NoteStatusEnum.DELETED.getCode());
+        int count = noteDOMapper.updateByPrimaryKeySelective(noteDO);
+        // 影响的行数为 0 ，则表示该笔记不存在
+        if (count == 0) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        String buildNoteDetailKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+        redisTemplate.delete(buildNoteDetailKey);
+
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("====> MQ：删除笔记本地缓存发送成功...");
+
+        return Response.success();
     }
 
     /**

@@ -3,10 +3,7 @@ package com.quanxiaoha.xiaohashu.note.biz.controller;
 
 import com.quanxiaoha.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.quanxiaoha.framework.common.response.Response;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.*;
 import com.quanxiaoha.xiaohashu.note.biz.service.NoteService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -47,4 +44,11 @@ public class NoteController {
     public Response<?> updateNote(@Validated @RequestBody UpdateNoteReqVO updateNoteReqVO) {
         return noteService.updateNote(updateNoteReqVO);
     }
+
+    @PostMapping(value = "/delete")
+    @ApiOperationLog(description = "删除笔记（逻辑删除）")
+    public Response<?> deleteNote(@Valid @RequestBody DeleteNoteReqVO deleteNoteReqVO) {
+        return noteService.deleteNote(deleteNoteReqVO);
+    }
+
 }

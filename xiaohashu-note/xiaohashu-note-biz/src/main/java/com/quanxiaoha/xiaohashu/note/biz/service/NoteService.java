@@ -2,10 +2,7 @@ package com.quanxiaoha.xiaohashu.note.biz.service;
 
 
 import com.quanxiaoha.framework.common.response.Response;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
-import com.quanxiaoha.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
+import com.quanxiaoha.xiaohashu.note.biz.model.vo.*;
 
 /**
  * @author 1192299468@qq.com
@@ -42,4 +39,11 @@ public interface NoteService {
      * @param noteId
      */
     void deleteNoteLocalCache(Long noteId);
+
+    /**
+     * 删除笔记
+     * @param deleteNoteReqVO
+     * @return
+     */
+    Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
 }
