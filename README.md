@@ -1178,6 +1178,8 @@ ALTER TABLE t_following ADD UNIQUE uk_user_id_following_user_id(user_id, followi
 
 
 
+## 批量查询用户
+
 
 
 
@@ -1185,6 +1187,12 @@ ALTER TABLE t_following ADD UNIQUE uk_user_id_following_user_id(user_id, followi
 # 十七、计数服务搭建与开发
 
 
+
+- 根据入参中，需要查询的用户 ID 集合，来构建 Redis Key 集合；
+- 批量查询 Redis， 这个时候可能存在 3 种情况：
+    - 1. 想要查询的用户信息，都在 Redis 缓存中，则直接返回数据；
+    - 1. 部分存在于 Redis 缓存中，则不存在的部分，需要走数据库查询，然后再**和从缓存查询的数据合并到一起**，进行返回；
+    - 1. Redis 中一条都没有，全都要从数据库中查询，返回数据；
 
 # BUG
 
@@ -1263,3 +1271,18 @@ ALTER TABLE t_following ADD UNIQUE uk_user_id_following_user_id(user_id, followi
 
 大小写问题
 
+
+
+---
+
+
+
+构造方法里尽量不要有参数，不知道什么时候实体类会增加字段
+
+
+
+---
+
+![image-20250603175714819](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250603175714819.png)
+
+![image-20250603175829137](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250603175829137.png)
