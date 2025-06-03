@@ -32,7 +32,7 @@ import java.util.Objects;
  * @description:
  */
 @Component
-@RocketMQMessageListener(consumerGroup = "xiaohashu_group",
+@RocketMQMessageListener(consumerGroup = "xiaohashu_group_" + MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW,
         topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW
 )
 @Slf4j
