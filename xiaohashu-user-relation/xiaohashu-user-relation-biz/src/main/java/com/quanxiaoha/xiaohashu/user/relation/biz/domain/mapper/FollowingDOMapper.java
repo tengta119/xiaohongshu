@@ -22,4 +22,24 @@ public interface FollowingDOMapper {
 
     int deleteByUserIdAndFollowingUserId(@Param("userId") Long userId,
                                          @Param("unfollowUserId") Long unfollowUserId);
+
+    long selectCountByUserId(Long userId);
+
+    /**
+     * 分页查询
+     * @param userId
+     * @param offset
+     * @param limit
+     * @return
+     */
+    List<FollowingDO> selectPageListByUserId(@Param("userId") Long userId,
+                                             @Param("offset") long offset,
+                                             @Param("limit") long limit);
+
+    /**
+     * 查询关注用户列表
+     * @param userId
+     * @return
+     */
+    List<FollowingDO> selectAllByUserId(Long userId);
 }
