@@ -3,10 +3,7 @@ package com.quanxiaoha.xiaohashu.user.relation.biz.service;
 
 import com.quanxiaoha.framework.common.response.PageResponse;
 import com.quanxiaoha.framework.common.response.Response;
-import com.quanxiaoha.xiaohashu.user.relation.biz.model.vo.FindFollowingListReqVO;
-import com.quanxiaoha.xiaohashu.user.relation.biz.model.vo.FindFollowingUserRspVO;
-import com.quanxiaoha.xiaohashu.user.relation.biz.model.vo.FollowUserReqVO;
-import com.quanxiaoha.xiaohashu.user.relation.biz.model.vo.UnfollowUserReqVO;
+import com.quanxiaoha.xiaohashu.user.relation.biz.model.vo.*;
 
 /**
  * @author 1192299468@qq.com
@@ -37,4 +34,11 @@ public interface RelationService {
      * @return
      */
     PageResponse<FindFollowingUserRspVO> findFollowingList(FindFollowingListReqVO findFollowingListReqVO);
+
+    /**
+     * 查询关注列表
+     * @param findFansListReqVO
+     * @return
+     */
+    PageResponse<FindFansUserRspVO> findFansList(FindFansListReqVO findFansListReqVO);
 }

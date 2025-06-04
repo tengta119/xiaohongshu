@@ -1286,3 +1286,10 @@ ALTER TABLE t_following ADD UNIQUE uk_user_id_following_user_id(user_id, followi
 ![image-20250603175714819](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250603175714819.png)
 
 ![image-20250603175829137](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250603175829137.png)
+
+---
+
+![image-20250604205633758](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250604205633758.png)
+
+
+
