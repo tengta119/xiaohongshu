@@ -40,7 +40,7 @@ public class CountFans2DBConsumer implements RocketMQListener<String> {
             log.error("## 解析 JSON 字符串异常", e);
         }
 
-        if (CollUtil.isEmpty(countMap)) {
+        if (CollUtil.isNotEmpty(countMap)) {
             countMap.forEach((k, v) -> {
                 userCountDOMapper.insertOrUpdateFansTotalByUserId(v, k);
             });
