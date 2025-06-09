@@ -1,6 +1,7 @@
 package com.quanxiaoha.xiaohashu.count.biz.domain.mapper;
 
 import com.quanxiaoha.xiaohashu.count.biz.domain.dataobject.UserCountDO;
+import org.apache.ibatis.annotations.Param;
 
 public interface UserCountDOMapper {
     int deleteByPrimaryKey(Long id);
@@ -14,4 +15,6 @@ public interface UserCountDOMapper {
     int updateByPrimaryKeySelective(UserCountDO record);
 
     int updateByPrimaryKey(UserCountDO record);
+
+    int insertOrUpdateFansTotalByUserId(@Param("count") Integer count, @Param("userId") Long userId);
 }
