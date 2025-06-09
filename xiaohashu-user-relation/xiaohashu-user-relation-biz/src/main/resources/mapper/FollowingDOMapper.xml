@@ -17,25 +17,24 @@
         where id = #{id,jdbcType=BIGINT}
     </select>
 
-    <select id="selectByUserId"
-            resultType="com.quanxiaoha.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO">
+    <select id="selectByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
             user_id, following_user_id, create_time
         from t_following
         where user_id = #{userId, jdbcType=BIGINT}
     </select>
+
     <select id="selectCountByUserId" resultType="java.lang.Long">
         select count(1) from t_following
         where user_id = #{userId}
     </select>
-    <select id="selectPageListByUserId"
-            resultType="com.quanxiaoha.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO">
+
+    <select id="selectPageListByUserId" resultMap="BaseResultMap">
         select following_user_id from t_following
         where user_id = #{userId} order by create_time desc limit #{offset}, #{limit}
     </select>
 
-    <select id="selectAllByUserId"
-            resultType="com.quanxiaoha.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO">
+    <select id="selectAllByUserId" resultMap="BaseResultMap">
         select following_user_id, create_time from t_following
         where user_id = #{userId} limit 1000
     </select>
