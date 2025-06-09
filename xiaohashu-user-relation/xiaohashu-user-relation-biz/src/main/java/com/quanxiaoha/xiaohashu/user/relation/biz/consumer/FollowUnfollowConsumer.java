@@ -133,6 +133,7 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
                     .targetUserId(followUserId)
                     .type(1)
                     .build();
+
             send(countFollowUnfollowMqDTO);
         }
 
