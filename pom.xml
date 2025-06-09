@@ -36,6 +36,8 @@
         <module>xiaohashu-note</module>
 <!--        用户关系服务-->
         <module>xiaohashu-user-relation</module>
+<!--        计数模块-->
+        <module>xiaohashu-count</module>
     </modules>
 
     <properties>

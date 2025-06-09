@@ -1194,6 +1194,8 @@ ALTER TABLE t_following ADD UNIQUE uk_user_id_following_user_id(user_id, followi
     - 1. 部分存在于 Redis 缓存中，则不存在的部分，需要走数据库查询，然后再**和从缓存查询的数据合并到一起**，进行返回；
     - 1. Redis 中一条都没有，全都要从数据库中查询，返回数据；
 
+
+
 # BUG
 
 ---
