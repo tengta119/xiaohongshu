@@ -79,6 +79,7 @@
         <feign-form.version>3.8.0</feign-form.version>
         <caffeine.version>3.1.8</caffeine.version>
         <rocketmq.version>2.2.3</rocketmq.version>
+        <buffertrigger.version>0.2.21</buffertrigger.version>
     </properties>
 
     <!-- 统一依赖管理 -->
@@ -148,6 +149,13 @@
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
+            </dependency>
+
+            <!-- 快手 Buffer Trigger -->
+            <dependency>
+                <groupId>com.github.phantomthief</groupId>
+                <artifactId>buffer-trigger</artifactId>
+                <version>${buffertrigger.version}</version>
             </dependency>
 
             <!-- Feign 表单提交 -->
