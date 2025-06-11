@@ -16,4 +16,7 @@ public interface NoteDOMapper {
     int updateByPrimaryKey(NoteDO record);
 
     int updateIsTop(NoteDO noteDO);
+
+    // 查询笔记是否存在，如果存在则返回 1
+    int selectCountByNoteId(Long noteId);
 }

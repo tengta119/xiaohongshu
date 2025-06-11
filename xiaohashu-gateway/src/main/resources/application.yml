@@ -32,6 +32,12 @@ spring:
                   filters:
                     - StripPrefix=1
                     
+                -   id: kv
+                    uri: lb://xiaohashu-kv
+                    predicates:
+                        - Path=/kv/**
+                    filters:
+                        - StripPrefix=1
     
     data:
         redis:

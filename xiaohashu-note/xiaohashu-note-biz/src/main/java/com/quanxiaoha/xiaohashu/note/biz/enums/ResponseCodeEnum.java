@@ -21,6 +21,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     NOTE_UPDATE_FAIL("NOTE-20004", "笔记更新失败"),
     TOPIC_NOT_FOUND("NOTE-20005", "笔记不存在"),
     NOTE_CANT_OPERATE("NOTE-20007", "您无法操作该笔记"),
+    NOTE_ALREADY_LIKED("NOTE-20008", "您已经点赞过该笔记"),
     ;
 
     // 异常码
