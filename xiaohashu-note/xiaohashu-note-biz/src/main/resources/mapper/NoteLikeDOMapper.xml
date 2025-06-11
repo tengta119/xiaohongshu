@@ -27,6 +27,16 @@
         where user_id = #{userId} and status = 1
     </select>
 
+    <select id="selectNoteIsLiked" resultType="java.lang.Integer">
+        select count(1) from t_note_like
+        where user_id = #{userId} and note_id = #{noteId} and status = 1 limit 1
+    </select>
+
+    <select id="selectLikedByUserIdAndLimit" resultMap="BaseResultMap" parameterType="map">
+        select note_id, create_time from t_note_like
+        where user_id = #{userId} and status = 1 order by create_time limit #{limit}
+    </select>
+
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete from t_note_like
         where id = #{id,jdbcType=BIGINT}
