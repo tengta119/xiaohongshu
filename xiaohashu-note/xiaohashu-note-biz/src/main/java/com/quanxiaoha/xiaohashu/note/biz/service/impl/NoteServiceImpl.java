@@ -499,10 +499,11 @@ public class NoteServiceImpl implements NoteService {
                 // 目标笔记已经被点赞
                 if (count > 0) {
                     // 异步初始化布隆过滤器
-                    asynBatchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
+                    batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
                 }
 
+                batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
                 script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_add_note_like_and_expire.lua")));
                 script.setResultType(Long.class);
                 redisTemplate.execute(script, Collections.singletonList(bloomUserNoteLikeListKey), noteId, expireSeconds);
@@ -658,7 +659,7 @@ public class NoteServiceImpl implements NoteService {
      * @param expireSeconds
      * @param bloomUserNoteLikeListKey
      */
-    private void asynBatchAddNoteLike2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteLikeListKey) {
+    private void batchAddNoteLike2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteLikeListKey) {
         executor.execute(() -> {
             try {
                 List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
