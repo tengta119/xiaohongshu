@@ -22,6 +22,7 @@ import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.NoteLikeDOMapper;
 import com.quanxiaoha.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
 import com.quanxiaoha.xiaohashu.note.biz.enums.*;
+import com.quanxiaoha.xiaohashu.note.biz.model.dto.LikeUnlikeNoteMqDTO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.*;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.KeyValueRpcService;
@@ -557,6 +558,7 @@ public class NoteServiceImpl implements NoteService {
                 // 再次调用 note_like_check_and_update_zset.lua 脚本，将点赞的笔记添加到 zset 中
                 redisTemplate.execute(script, Collections.singletonList(userNoteLikeZSetKey), noteId, DateUtils.localDateTime2Timestamp(now));
                 log.info("====> 将用户的点赞过的笔记前100条同步到 redis 的 zset 中 {}", luaArgs);
+
             } else { // 若数据库中，无点赞过的笔记记录，则直接将当前点赞的笔记 ID 添加到 ZSet 中，随机过期时间
                 List<Object> luaArgs = Lists.newArrayList();
                 luaArgs.add(DateUtils.localDateTime2Timestamp(LocalDateTime.now())); // score ：点赞时间戳
@@ -569,6 +571,29 @@ public class NoteServiceImpl implements NoteService {
         }
 
         // 4. 发送 MQ, 将点赞数据落库
+        LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO = LikeUnlikeNoteMqDTO.builder()
+                .noteId(noteId)
+                .userId(userId)
+                .type(LikeUnlikeNoteTypeEnum.LIKE.getCode())
+                .createTime(LocalDateTime.now())
+                .build();
+
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
+        log.info("要发送的消息：{}", message);
+        String key = String.valueOf(userId);
+        String destination = MQConstants.TOPIC_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_LIKE;
+
+        rocketMQTemplate.asyncSendOrderly(destination, message, key, new SendCallback(){
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记点赞】MQ 发送成功，SendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记点赞】MQ 发送异常: ", throwable);
+            }
+        });
 
         return Response.success();
     }
@@ -618,7 +643,7 @@ public class NoteServiceImpl implements NoteService {
 
         int i = 0;
         for (NoteLikeDO noteLikeDO : noteLikeDOS) {
-            luaArgs[i] = DateUtils.dateTime2Timestamp(noteLikeDO.getCreateTime()); // 点赞时间作为 score
+            luaArgs[i] = DateUtils.localDateTime2Timestamp(noteLikeDO.getCreateTime()); // 点赞时间作为 score
             luaArgs[i + 1] = noteLikeDO.getNoteId();          // 笔记ID 作为 ZSet value
             i += 2;
         }
