@@ -68,4 +68,10 @@ public class NoteController {
     public Response<?> unlikeNote(@Validated @RequestBody UnlikeNoteReqVO unlikeNoteReqVO) {
         return noteService.unlikeNote(unlikeNoteReqVO);
     }
+
+    @PostMapping(value = "/collect")
+    @ApiOperationLog(description = "收藏笔记")
+    public Response<?> collectNote(@Validated @RequestBody CollectNoteReqVO collectNoteReqVO) {
+        return noteService.collectNote(collectNoteReqVO);
+    }
 }
