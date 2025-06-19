@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,7 +18,7 @@ public class NoteCollectionDO {
 
     private Long noteId;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 
     private Byte status;
 

@@ -32,4 +32,20 @@ public interface NoteCollectionDOMapper {
      * @return
      */
     List<NoteCollectionDO> selectByUserId(Long userId);
+
+    /**
+     * 查询笔记是否已经被收藏
+     * @param userId
+     * @param noteId
+     * @return
+     */
+    int selectNoteIsCollected(@Param("userId") Long userId, @Param("noteId") Long noteId);
+
+    /**
+     * 查询用户最近收藏的笔记
+     * @param userId
+     * @param limit
+     * @return
+     */
+    List<NoteCollectionDO> selectCollectedByUserIdAndLimit(@Param("userId") Long userId, @Param("limit")  int limit);
 }
