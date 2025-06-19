@@ -74,4 +74,11 @@ public class NoteController {
     public Response<?> collectNote(@Validated @RequestBody CollectNoteReqVO collectNoteReqVO) {
         return noteService.collectNote(collectNoteReqVO);
     }
+
+
+    @PostMapping(value = "/uncollect")
+    @ApiOperationLog(description = "取消收藏笔记")
+    public Response<?> unCollectNote(@Validated @RequestBody UnCollectNoteReqVO unCollectNoteReqVO) {
+        return noteService.unCollectNote(unCollectNoteReqVO);
+    }
 }
