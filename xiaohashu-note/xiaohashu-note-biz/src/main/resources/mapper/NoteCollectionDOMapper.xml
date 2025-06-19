@@ -87,6 +87,12 @@
         </trim>
     </insert>
 
+    <insert id="insertOrUpdate" parameterType="com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteCollectionDO">
+        insert into t_note_collection (user_id, note_id, create_time, status)
+        values (#{userId}, #{noteId}, #{createTime}, #{status})
+        on duplicate key update create_time = #{createTime}, status = #{status}
+    </insert>
+
     <update id="updateByPrimaryKeySelective" parameterType="com.quanxiaoha.xiaohashu.note.biz.domain.dataobject.NoteCollectionDO">
         update t_note_collection
         <set>

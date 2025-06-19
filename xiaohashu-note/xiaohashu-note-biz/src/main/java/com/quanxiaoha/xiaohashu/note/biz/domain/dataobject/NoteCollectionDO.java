@@ -20,6 +20,6 @@ public class NoteCollectionDO {
 
     private LocalDateTime createTime;
 
-    private Byte status;
+    private Integer status;
 
 }
