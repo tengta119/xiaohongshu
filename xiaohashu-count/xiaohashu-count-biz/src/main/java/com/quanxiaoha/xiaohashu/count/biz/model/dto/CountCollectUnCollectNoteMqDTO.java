@@ -28,4 +28,6 @@ public class CountCollectUnCollectNoteMqDTO {
     private Integer type;
 
     private LocalDateTime createTime;
+
+    private Long creatorId;
 }

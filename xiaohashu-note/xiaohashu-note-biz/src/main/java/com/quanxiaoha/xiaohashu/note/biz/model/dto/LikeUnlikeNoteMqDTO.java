@@ -30,4 +30,9 @@ public class LikeUnlikeNoteMqDTO {
 
     private LocalDateTime createTime;
 
+    /**
+     * 笔记发布者 ID
+     */
+    private Long noteCreatorId;
+
 }

@@ -19,4 +19,12 @@ public interface NoteDOMapper {
 
     // 查询笔记是否存在，如果存在则返回 1
     int selectCountByNoteId(Long noteId);
+
+    /**
+     * 查询笔记的发布者用户 ID
+     * @param noteId
+     * @return
+     */
+    Long selectCreatorIdByNoteId(Long noteId);
+
 }

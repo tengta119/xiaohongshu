@@ -1,18 +1,15 @@
 package com.quanxiaoha.framework.common.util;
 
-import cn.hutool.core.lang.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import com.quanxiaoha.framework.common.constant.DateConstants;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -84,5 +81,24 @@ public class JsonUtils {
 
         // 将 JSON 字符串转换为 Map
         return OBJECT_MAPPER.readValue(jsonStr, OBJECT_MAPPER.getTypeFactory().constructMapType(Map.class, keyClass, valueClass));
+    }
+
+    /**
+     * 将 JSON 字符串解析为指定类型的 List 对象
+     *
+     * @param jsonStr
+     * @param clazz
+     * @return
+     * @param <T>
+     * @throws Exception
+     */
+    public static <T> List<T> parseList(String jsonStr, Class<T> clazz) throws Exception {
+        // 使用 TypeReference 指定 List<T> 的泛型类型
+        return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<>() {
+            @Override
+            public CollectionType getType() {
+                return OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz);
+            }
+        });
     }
 }
