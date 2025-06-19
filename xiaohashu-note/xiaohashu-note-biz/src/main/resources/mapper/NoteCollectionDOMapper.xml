@@ -29,7 +29,7 @@
     </select>
 
     <select id="selectNoteIsCollected" resultType="java.lang.Integer" parameterType="map">
-        select count(1) from t_note_collection where user_id = #{userId} and note_id = #{noteId} and status = 1
+        select count(1) from t_note_collection where user_id = #{userId} and note_id = #{noteId} and status = 1 limit 1
     </select>
 
     <select id="selectCollectedByUserIdAndLimit" resultMap="BaseResultMap" parameterType="map">

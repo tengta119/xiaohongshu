@@ -729,7 +729,7 @@ public class NoteServiceImpl implements NoteService {
                 // 校验 ZSet 列表中是否包含被收藏的笔记ID
                 String userNoteCollectZSetKey = RedisKeyConstants.buildUserNoteCollectZSetKey(userId);
                 Double score = redisTemplate.opsForZSet().score(userNoteCollectZSetKey, noteId);
-                if (Objects.isNull(score) || score > 0) {
+                if (Objects.nonNull(score)) {
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
                 }
 

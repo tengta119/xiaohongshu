@@ -71,6 +71,12 @@
         ON DUPLICATE KEY UPDATE like_total = like_total + (#{count});
     </insert>
 
+    <insert id="insertOrUpdateCollectTotalByNoteId" parameterType="map">
+        INSERT INTO t_note_count (note_id, collect_total)
+        VALUES (#{noteId}, #{count})
+        ON DUPLICATE KEY UPDATE collect_total = collect_total + (#{count});
+    </insert>
+
     <update id="updateByPrimaryKeySelective" parameterType="com.quanxiaoha.xiaohashu.count.biz.domain.dataobject.NoteCountDO">
         update t_note_count
         <set>
