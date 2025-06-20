@@ -3,6 +3,7 @@ package com.quanxiaoha.framework.common.util;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.Objects;
 
 /**
  * @author lbwxxc
@@ -17,6 +18,11 @@ public class NumberUtils {
      * @return
      */
     public static String formatNumberString(long number) {
+
+        if (Objects.isNull(number)) {
+            return "0";
+        }
+
         if (number < 10000) {
             return String.valueOf(number);  // 小于 1 万显示原始数字
         } else if (number >= 10000 && number < 100000000) {
