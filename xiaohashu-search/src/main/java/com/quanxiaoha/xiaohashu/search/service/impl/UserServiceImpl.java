@@ -1,8 +1,10 @@
 package com.quanxiaoha.xiaohashu.search.service.impl;
 
 
+import cn.hutool.core.collection.CollUtil;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.quanxiaoha.framework.common.response.PageResponse;
+import com.quanxiaoha.framework.common.util.NumberUtils;
 import com.quanxiaoha.xiaohashu.search.index.UserIndex;
 import com.quanxiaoha.xiaohashu.search.model.vo.SearchUserReqVO;
 import com.quanxiaoha.xiaohashu.search.model.vo.SearchUserRspVO;
@@ -17,6 +19,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.stereotype.Service;
@@ -63,9 +66,15 @@ public class UserServiceImpl implements UserService {
         // 设置分页，from 和 size
         int pageSize = 10; // 每页展示数据量
         int from = (pageNo - 1) * pageSize; // 偏移量
-
         sourceBuilder.from(from);
         sourceBuilder.size(pageSize);
+
+        //设置高亮字段
+        HighlightBuilder highlightBuilder = new HighlightBuilder();
+        highlightBuilder.field(UserIndex.FIELD_USER_NICKNAME)
+                        .preTags("<strong>")
+                        .postTags("</strong>");
+        sourceBuilder.highlighter(highlightBuilder);
 
         searchRequest.source(sourceBuilder);
 
@@ -96,6 +105,12 @@ public class UserServiceImpl implements UserService {
                 Integer noteTotal = (Integer) sourceAsMap.get(UserIndex.FIELD_USER_NOTE_TOTAL);
                 Integer fansTotal = (Integer) sourceAsMap.get(UserIndex.FIELD_USER_FANS_TOTAL);
 
+                // 获取高亮字段
+                String highlightedNickname = null;
+                if (CollUtil.isNotEmpty(hit.getHighlightFields()) && hit.getHighlightFields().containsKey(UserIndex.FIELD_USER_NICKNAME)) {
+                    highlightedNickname = hit.getHighlightFields().get(UserIndex.FIELD_USER_NICKNAME).fragments()[0].toString();
+                }
+
                 // 构建 VO 实体类
                 SearchUserRspVO searchUserRspVO = SearchUserRspVO.builder()
                         .userId(userId)
@@ -103,7 +118,8 @@ public class UserServiceImpl implements UserService {
                         .avatar(avatar)
                         .xiaohashuId(xiaohashuId)
                         .noteTotal(noteTotal)
-                        .fansTotal(fansTotal)
+                        .fansTotal(NumberUtils.formatNumberString(fansTotal))
+                        .highlightNickname(highlightedNickname)
                         .build();
                 searchUserRspVOS.add(searchUserRspVO);
             }
