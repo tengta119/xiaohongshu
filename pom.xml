@@ -38,6 +38,8 @@
         <module>xiaohashu-user-relation</module>
 <!--        计数模块-->
         <module>xiaohashu-count</module>
+<!--        搜索服务-->
+        <module>xiaohashu-search</module>
     </modules>
 
     <properties>
@@ -56,6 +58,7 @@
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
 
         <!-- 依赖包版本 -->
+        <elasticsearch.version>7.3.0</elasticsearch.version>
         <spring-boot.version>3.0.2</spring-boot.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
         <spring-cloud.version>2022.0.0</spring-cloud.version>
@@ -142,6 +145,23 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq.version}</version>
+            </dependency>
+
+            <!-- Elasticsearch 分布式搜索引擎 -->
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
             </dependency>
 
             <!-- Caffeine 本地缓存 -->
