@@ -33,6 +33,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Canal -->
+        <dependency>
+            <groupId>com.alibaba.otter</groupId>
+            <artifactId>canal.client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.otter</groupId>
+            <artifactId>canal.common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.otter</groupId>
+            <artifactId>canal.protocol</artifactId>
+        </dependency>
+
+
         <!-- 业务接口日志组件 -->
         <dependency>
             <groupId>com.quanxiaoha</groupId>
