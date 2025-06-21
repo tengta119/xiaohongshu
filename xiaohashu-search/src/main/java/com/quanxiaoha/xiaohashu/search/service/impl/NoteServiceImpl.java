@@ -6,7 +6,9 @@ import com.google.common.collect.Lists;
 import com.quanxiaoha.framework.common.constant.DateConstants;
 import com.quanxiaoha.framework.common.response.PageResponse;
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.framework.common.util.DateUtils;
 import com.quanxiaoha.framework.common.util.NumberUtils;
+import com.quanxiaoha.xiaohashu.search.enums.NotePublishTimeRangeEnum;
 import com.quanxiaoha.xiaohashu.search.enums.NoteSortTypeEnum;
 import com.quanxiaoha.xiaohashu.search.index.NoteIndex;
 import com.quanxiaoha.xiaohashu.search.index.UserIndex;
@@ -16,6 +18,7 @@ import com.quanxiaoha.xiaohashu.search.model.vo.SearchUserRspVO;
 import com.quanxiaoha.xiaohashu.search.service.NoteService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -65,6 +68,8 @@ public class NoteServiceImpl implements NoteService {
         Integer type = searchNoteReqVO.getType();
         // 排序类型
         Integer sort = searchNoteReqVO.getSort();
+        // 发布时间范围
+        Integer publishTimeRange = searchNoteReqVO.getPublishTimeRange();
 
         // 构建 SearchRequest，指定要查询的索引
         SearchRequest searchRequest = new SearchRequest(NoteIndex.NAME);
@@ -86,6 +91,29 @@ public class NoteServiceImpl implements NoteService {
         // 按笔记类型过滤
         if (Objects.nonNull(type)) {
             boolQueryBuilder.filter(QueryBuilders.termQuery(NoteIndex.FIELD_NOTE_TYPE, type));
+        }
+
+        NotePublishTimeRangeEnum notePublishTimeRangeEnum = NotePublishTimeRangeEnum.valueOf(publishTimeRange);
+        if (Objects.nonNull(notePublishTimeRangeEnum)) {
+            // 结束时间
+            String endTime = LocalDateTime.now().format(DateConstants.DATE_FORMAT_Y_M_D_H_M_S);
+            // 开始时间
+            String startTime = null;
+            switch (notePublishTimeRangeEnum) {
+                case DAY ->
+                        startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusDays(1)); // 一天之前的时间
+                case WEEK ->
+                        startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusWeeks(1)); // 一周之前的时间
+                case HALF_YEAR ->
+                        startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusMonths(6)); // 半年之前的时间
+            }
+            if (StringUtils.isNotBlank(startTime)) {
+                boolQueryBuilder.filter(QueryBuilders.rangeQuery(NoteIndex.FIELD_NOTE_CREATE_TIME)
+                        .gte(startTime)
+                        .lte(endTime)
+                );
+
+            }
         }
 
         // 排序
@@ -236,6 +264,8 @@ public class NoteServiceImpl implements NoteService {
                 String updateTimeStr = (String) sourceAsMap.get(NoteIndex.FIELD_NOTE_UPDATE_TIME);
                 LocalDateTime updateTime = LocalDateTime.parse(updateTimeStr, DateConstants.DATE_FORMAT_Y_M_D_H_M_S);
                 Integer likeTotal = (Integer) sourceAsMap.get(NoteIndex.FIELD_NOTE_LIKE_TOTAL);
+                Integer commentTotal = (Integer) sourceAsMap.get(NoteIndex.FIELD_NOTE_COMMENT_TOTAL);
+                Integer collectTotal = (Integer) sourceAsMap.get(NoteIndex.FIELD_NOTE_COLLECT_TOTAL);
                 if (likeTotal == null) {
                     likeTotal = 0;
                 }
@@ -254,8 +284,10 @@ public class NoteServiceImpl implements NoteService {
                         .highlightTitle(highlightedTitle)
                         .avatar(avatar)
                         .nickname(nickname)
-                        .updateTime(updateTime)
+                        .updateTime(DateUtils.formatRelativeTime(updateTime))
                         .likeTotal(NumberUtils.formatNumberString(likeTotal))
+                        .commentTotal(NumberUtils.formatNumberString(commentTotal))
+                        .collectTotal(NumberUtils.formatNumberString(collectTotal))
                         .build();
                 searchNoteRspVOS.add(searchNoteRspVO);
             }
