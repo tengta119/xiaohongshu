@@ -1553,3 +1553,9 @@ HINCRBY count:user:1 fansTotal -1
 ![image-20250619155454274](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250619155454274.png)
 
 类型 BUG
+
+
+
+## mapper 找不到对应的方法
+
+![image-20250621112555759](https://map-bed-lbwxxc.oss-cn-beijing.aliyuncs.com/imgimage-20250621112555759.png)
