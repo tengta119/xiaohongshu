@@ -9,15 +9,11 @@ import com.quanxiaoha.xiaohashu.comment.biz.constants.MQConstants;
 import com.quanxiaoha.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.quanxiaoha.xiaohashu.comment.biz.model.vo.PublishCommentReqVO;
 import com.quanxiaoha.xiaohashu.comment.biz.retry.SendMqRetryHelper;
+import com.quanxiaoha.xiaohashu.comment.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.comment.biz.service.CommentService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,9 +27,9 @@ import java.time.LocalDateTime;
 public class CommentServiceImpl implements CommentService {
 
     @Resource
-    private RocketMQTemplate rocketMQTemplate;
-    @Resource
     private SendMqRetryHelper sendMqRetryHelper;
+    @Resource
+    private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
 
     @Override
     public Response<?> publishComment(PublishCommentReqVO publishCommentReqVO) {
@@ -46,6 +42,8 @@ public class CommentServiceImpl implements CommentService {
 
         // 发布者 ID
         Long creatorId = LoginUserContextHolder.getUserId();
+        // RPC: 调用分布式 ID 生成服务，生成评论 ID
+        String commentId = distributedIdGeneratorRpcService.generateCommentId();
         // 发送 MQ
         // 构建消息体 DTO
         PublishCommentMqDTO publishCommentMqDTO = PublishCommentMqDTO.builder()
@@ -55,6 +53,7 @@ public class CommentServiceImpl implements CommentService {
                 .replyCommentId(publishCommentReqVO.getReplyCommentId())
                 .createTime(LocalDateTime.now())
                 .creatorId(creatorId)
+                .commentId(Long.valueOf(commentId))
                 .build();
 
 

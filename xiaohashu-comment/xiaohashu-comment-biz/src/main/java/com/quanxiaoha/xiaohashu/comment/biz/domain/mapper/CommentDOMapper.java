@@ -1,6 +1,10 @@
 package com.quanxiaoha.xiaohashu.comment.biz.domain.mapper;
 
 import com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject.CommentDO;
+import com.quanxiaoha.xiaohashu.comment.biz.model.bo.CommentBO;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 public interface CommentDOMapper {
     int deleteByPrimaryKey(Long id);
@@ -14,4 +18,14 @@ public interface CommentDOMapper {
     int updateByPrimaryKeySelective(CommentDO record);
 
     int updateByPrimaryKey(CommentDO record);
+
+    /**
+     * 根据评论 ID 批量查询
+     */
+    List<CommentDO> selectByCommentIds(@Param("commentIds") List<Long> commentIds);
+
+    /**
+     * 批量插入评论
+     */
+    int batchInsert(@Param("comments") List<CommentBO> comments);
 }

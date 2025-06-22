@@ -45,4 +45,9 @@ public class PublishCommentMqDTO {
      * 发布者 ID
      */
     private Long creatorId;
+
+    /**
+     * 评论 ID
+     */
+    private Long commentId;
 }

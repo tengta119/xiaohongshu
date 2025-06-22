@@ -23,6 +23,11 @@
 
         <dependency>
             <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaoha-spring-boot-starter-biz-operationlog</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
             <artifactId>xiaohashu-kv-api</artifactId>
         </dependency>
 
