@@ -1,6 +1,6 @@
 spring:
   application:
-    name: xiaohashu-search # 应用名称
+    name: xiaohashu-comment # 应用名称
   profiles:
     active: dev # 默认激活 dev 本地开发环境
   cloud:

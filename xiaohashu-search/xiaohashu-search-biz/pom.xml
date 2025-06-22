@@ -16,6 +16,7 @@
     <description>搜索服务业务层</description>
 
     <dependencies>
+
         <dependency>
             <groupId>com.quanxiaoha</groupId>
             <artifactId>xiaoha-common</artifactId>

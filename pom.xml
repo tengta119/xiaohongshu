@@ -38,6 +38,9 @@
         <module>xiaohashu-user-relation</module>
 <!--        计数模块-->
         <module>xiaohashu-count</module>
+
+        <module>xiaohashu-comment</module>
+
         <module>xiaohashu-search</module>
     </modules>
 

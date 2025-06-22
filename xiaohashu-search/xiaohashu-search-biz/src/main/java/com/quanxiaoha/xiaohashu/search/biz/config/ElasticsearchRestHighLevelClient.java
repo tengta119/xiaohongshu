@@ -7,12 +7,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * @author: 犬小哈
- * @date: 2024/12/3 15:56
- * @version: v1.0.0
- * @description: ElasticsearchRestClient 客户端
- **/
+
 @Configuration
 public class ElasticsearchRestHighLevelClient {
 
