@@ -4,40 +4,50 @@ spring:
     cloud:
         gateway:
             routes:
-                - id: auth
-                  uri: lb://xiaohashu-auth
-                  predicates:
-                      - Path=/auth/**
-                  filters:
-                      - StripPrefix=1
-                      
-                - id: user
-                  uri: lb://xiaohashu-user
-                  predicates:
-                    - Path=/user/**
-                  filters:
-                    - StripPrefix=1
-                    
-                - id: note
-                  uri: lb://xiaohashu-note
-                  predicates:
-                    - Path=/note/**
-                  filters:
-                    - StripPrefix=1
+                -   id: auth
+                    uri: lb://xiaohashu-auth
+                    predicates:
+                        - Path=/auth/**
+                    filters:
+                        - StripPrefix=1
                 
-                - id: relation
-                  uri: lb://xiaohashu-user-relation
-                  predicates:
-                    - Path=/relation/**
-                  filters:
-                    - StripPrefix=1
-                    
+                -   id: user
+                    uri: lb://xiaohashu-user
+                    predicates:
+                        - Path=/user/**
+                    filters:
+                        - StripPrefix=1
+                
+                -   id: note
+                    uri: lb://xiaohashu-note
+                    predicates:
+                        - Path=/note/**
+                    filters:
+                        - StripPrefix=1
+                
+                -   id: relation
+                    uri: lb://xiaohashu-user-relation
+                    predicates:
+                        - Path=/relation/**
+                    filters:
+                        - StripPrefix=1
+                
                 -   id: kv
                     uri: lb://xiaohashu-kv
                     predicates:
                         - Path=/kv/**
                     filters:
                         - StripPrefix=1
+                
+                -   id: comment
+                    uri: lb://xiaohashu-comment
+                    predicates:
+                        - Path=/comment/**
+                    filters:
+                        - StripPrefix=1
+                      
+    
+    
     
     data:
         redis:

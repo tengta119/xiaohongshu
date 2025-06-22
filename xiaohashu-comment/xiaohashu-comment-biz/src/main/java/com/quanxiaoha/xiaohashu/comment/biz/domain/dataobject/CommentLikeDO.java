@@ -2,7 +2,7 @@ package com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject;
 
 import lombok.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -15,7 +15,7 @@ public class CommentLikeDO {
 
     private Long commentId;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 
 
 }
