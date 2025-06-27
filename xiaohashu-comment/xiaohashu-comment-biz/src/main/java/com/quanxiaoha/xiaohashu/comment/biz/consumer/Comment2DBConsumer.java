@@ -10,6 +10,7 @@ import com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject.CommentDO;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.quanxiaoha.xiaohashu.comment.biz.enums.CommentLevelEnum;
 import com.quanxiaoha.xiaohashu.comment.biz.model.bo.CommentBO;
+import com.quanxiaoha.xiaohashu.comment.biz.model.dto.CountPublishCommentMqDTO;
 import com.quanxiaoha.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.quanxiaoha.xiaohashu.comment.biz.rpc.KeyValueRpcService;
 import jakarta.annotation.PreDestroy;
@@ -20,11 +21,15 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -53,6 +58,9 @@ public class Comment2DBConsumer {
     private TransactionTemplate transactionTemplate;
     @Resource
     private KeyValueRpcService keyValueRpcService;
+
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
 
     @Bean
     public DefaultMQPushConsumer mqPushConsumer() throws MQClientException {
@@ -89,8 +97,8 @@ public class Comment2DBConsumer {
 
                 // 提取所有不为空的回复评论 ID
                 List<Long> replyCommentIds = publishCommentMqDTOS.stream()
-                        .filter(publishCommentMqDTO -> Objects.nonNull(publishCommentMqDTO.getReplyCommentId()))
                         .map(PublishCommentMqDTO::getReplyCommentId)
+                        .filter(Objects::nonNull)
                         .toList();
 
                 // 批量查询相关回复评论记录
@@ -159,10 +167,10 @@ public class Comment2DBConsumer {
                 }
 
                 log.info("## 清洗后的 CommentBOS: {}", JsonUtils.toJsonString(commentBOS));
-                transactionTemplate.execute(status -> {
+                Integer insertedRows = transactionTemplate.execute(status -> {
                     try {
                         // 先批量存入评论元数据
-                        commentDOMapper.batchInsert(commentBOS);
+                        int count = commentDOMapper.batchInsert(commentBOS);
 
                         // 过滤出评论内容不为空的 BO
                         List<CommentBO> commentContentNotEmptyBOS = commentBOS.stream()
@@ -172,13 +180,30 @@ public class Comment2DBConsumer {
                             // 批量存入评论内容
                             keyValueRpcService.batchSaveCommentContent(commentContentNotEmptyBOS);
                         }
-                        return true;
+                        return count;
                     } catch (Exception ex) {
                         status.setRollbackOnly(); // 标记事务为回滚
                         log.error("", ex);
                         throw ex;
                     }
                 });
+
+                if (Objects.nonNull(insertedRows) && insertedRows > 0) {
+                    List<CountPublishCommentMqDTO> countPublishCommentMqDTOS  = commentBOS.stream()
+                            .map(commentBO -> new CountPublishCommentMqDTO(commentBO.getNoteId(), commentBO.getId())).toList();
+                    Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countPublishCommentMqDTOS)).build();
+                    rocketMQTemplate.asyncSend(MQConstants.TOPIC_COUNT_NOTE_COMMENT, message, new SendCallback() {
+                        @Override
+                        public void onSuccess(SendResult sendResult) {
+                            log.info("==> 【计数: 评论发布】MQ 发送成功，SendResult: {}", sendResult);
+                        }
+
+                        @Override
+                        public void onException(Throwable throwable) {
+                            log.error("==> 【计数: 评论发布】MQ 发送异常: ", throwable);
+                        }
+                    });
+                }
 
                 // 手动 ACK，告诉 RocketMQ 这批次消息消费成功
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
