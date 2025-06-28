@@ -35,7 +35,7 @@
 
     <select id="selectByCommentIds" resultMap="BaseResultMap" parameterType="list">
         select
-        id, level, parent_id, user_id
+        id, level, parent_id, user_id, child_comment_total, like_total
         from t_comment
         where id in
         <foreach collection="commentIds" open="(" separator="," close=")" item="commentId">
@@ -272,5 +272,18 @@
             heat = #{heat,jdbcType=DECIMAL},
             first_reply_comment_id = #{firstReplyCommentId,jdbcType=BIGINT}
         where id = #{id,jdbcType=BIGINT}
+    </update>
+
+    <update id="batchUpdateHeatByCommentIds" parameterType="map">
+        update t_comment
+            set heat = case id
+            <foreach collection="commentHeatBOS" item="bo" separator="">
+                when #{bo.id} then #{bo.heat}
+            </foreach>
+            else heat end
+        where id in
+        <foreach collection="commentIds" item="commentId" open="(" close=")" separator=",">
+            #{commentId}
+        </foreach>
     </update>
 </mapper>

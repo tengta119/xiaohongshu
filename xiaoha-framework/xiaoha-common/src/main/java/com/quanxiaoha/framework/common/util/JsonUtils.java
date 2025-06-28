@@ -1,5 +1,6 @@
 package com.quanxiaoha.framework.common.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,15 +10,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-/**
- * @author: 犬小哈
- * @url: www.quanxiaoha.com
- * @date: 2023-08-14 16:27
- * @description: JSON 工具类
- **/
+
 public class JsonUtils {
 
     private static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -30,8 +28,6 @@ public class JsonUtils {
 
     /**
      * 初始化：统一使用 Spring Boot 个性化配置的 ObjectMapper
-     *
-     * @param objectMapper
      */
     public static void init(ObjectMapper objectMapper) {
         OBJECT_MAPPER = objectMapper;
@@ -39,8 +35,6 @@ public class JsonUtils {
 
     /**
      *  将对象转换为 JSON 字符串
-     * @param obj
-     * @return
      */
     @SneakyThrows
     public static String toJsonString(Object obj) {
@@ -49,11 +43,6 @@ public class JsonUtils {
 
     /**
      * 将 JSON 字符串转换为对象
-     *
-     * @param jsonStr
-     * @param clazz
-     * @return
-     * @param <T>
      */
     @SneakyThrows
     public static <T> T parseObject(String jsonStr, Class<T> clazz) {
@@ -66,13 +55,6 @@ public class JsonUtils {
 
     /**
      * 将 JSON 字符串转换为 Map
-     * @param jsonStr
-     * @param keyClass
-     * @param valueClass
-     * @return
-     * @param <K>
-     * @param <V>
-     * @throws Exception
      */
     public static <K, V> Map<K, V> parseMap(String jsonStr, Class<K> keyClass, Class<V> valueClass) throws Exception {
         // 创建 TypeReference，指定泛型类型
@@ -85,12 +67,6 @@ public class JsonUtils {
 
     /**
      * 将 JSON 字符串解析为指定类型的 List 对象
-     *
-     * @param jsonStr
-     * @param clazz
-     * @return
-     * @param <T>
-     * @throws Exception
      */
     public static <T> List<T> parseList(String jsonStr, Class<T> clazz) throws Exception {
         // 使用 TypeReference 指定 List<T> 的泛型类型
@@ -98,6 +74,19 @@ public class JsonUtils {
             @Override
             public CollectionType getType() {
                 return OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz);
+            }
+        });
+    }
+
+    /**
+     * 将 JSON 字符串解析为指定类型的 Set 对象
+     */
+    public static <T> Set<T> parseSet(String jsonStr, Class<T> clazz) throws Exception {
+
+        return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<Set<T>>() {
+            @Override
+            public Type getType() {
+                return OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, clazz);
             }
         });
     }

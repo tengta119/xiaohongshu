@@ -11,14 +11,20 @@ import com.quanxiaoha.xiaohashu.count.biz.enums.CommentLevelEnum;
 import com.quanxiaoha.xiaohashu.count.biz.model.dto.CountPublishCommentMqDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 /**
  * @author lbwxxc
@@ -32,7 +38,8 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
 
     @Resource
     CommentDOMapper commentDOMapper;
-
+    @Resource
+    RocketMQTemplate rocketMQTemplate;
 
     private final BufferTrigger<String> bufferTrigger = BufferTrigger.<String>batchBlocking()
             .bufferSize(5000)
@@ -69,5 +76,19 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
         // 更新一级评论的下级评论总数，进行累加操作
         groupMap.forEach((parentId, countPublishCommentMqDTOList) ->
                 commentDOMapper.updateChildCommentTotal(parentId, countPublishCommentMqDTOList.size()));
+
+        Set<Long> commentIds = groupMap.keySet();
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(commentIds)).build();
+        rocketMQTemplate.asyncSend(MQConstants.TOPIC_COMMENT_HEAT_UPDATE, message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【评论热度值更新】MQ 发送成功，SendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【评论热度值更新】MQ 发送异常: ", throwable);
+            }
+        });
     }
 }

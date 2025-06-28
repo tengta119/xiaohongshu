@@ -52,6 +52,13 @@
             <artifactId>xiaoha-spring-boot-starter-jackson</artifactId>
         </dependency>
 
+        <!-- 快手 Buffer Trigger -->
+        <dependency>
+            <groupId>com.github.phantomthief</groupId>
+            <artifactId>buffer-trigger</artifactId>
+        </dependency>
+
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
