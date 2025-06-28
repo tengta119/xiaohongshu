@@ -83,7 +83,7 @@
 
     <insert id="insertOrUpdateFansTotalByUserId" parameterType="map">
         insert into t_user_count (user_id, fans_total)
-        value (#{userId}, #{count})
+            value (#{userId}, #{count})
         on duplicate key update fans_total = fans_total + (#{count});
     </insert>
 

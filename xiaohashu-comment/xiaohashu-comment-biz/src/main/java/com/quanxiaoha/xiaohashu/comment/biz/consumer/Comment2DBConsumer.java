@@ -190,7 +190,14 @@ public class Comment2DBConsumer {
 
                 if (Objects.nonNull(insertedRows) && insertedRows > 0) {
                     List<CountPublishCommentMqDTO> countPublishCommentMqDTOS  = commentBOS.stream()
-                            .map(commentBO -> new CountPublishCommentMqDTO(commentBO.getNoteId(), commentBO.getId())).toList();
+                            .map(commentBO -> CountPublishCommentMqDTO.builder()
+                                    .noteId(commentBO.getNoteId())
+                                    .commentId(commentBO.getId())
+                                    .level(commentBO.getLevel())
+                                    .parentId(commentBO.getParentId())
+                                    .build()
+                            ).toList();
+
                     Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countPublishCommentMqDTOS)).build();
                     rocketMQTemplate.asyncSend(MQConstants.TOPIC_COUNT_NOTE_COMMENT, message, new SendCallback() {
                         @Override
