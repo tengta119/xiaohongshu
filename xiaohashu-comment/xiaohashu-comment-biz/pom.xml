@@ -22,6 +22,12 @@
             <artifactId>xiaohashu-kv-api</artifactId>
         </dependency>
 
+<!--    用户服务    -->
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-user-api</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>com.quanxiaoha</groupId>

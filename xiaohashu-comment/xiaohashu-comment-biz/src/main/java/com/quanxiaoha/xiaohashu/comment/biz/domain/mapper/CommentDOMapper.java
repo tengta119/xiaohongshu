@@ -46,4 +46,16 @@ public interface CommentDOMapper {
      */
     int updateFirstReplyCommentIdByPrimaryKey(@Param("firstReplyCommentId") Long firstReplyCommentId,
                                               @Param("id") Long id);
+
+    /**
+     * 查询评论分页数据
+     */
+    List<CommentDO> selectPageList(@Param("noteId") Long noteId,
+                                   @Param("offset") long offset,
+                                   @Param("pageSize") long pageSize);
+
+    /**
+     * 批量查询二级评论
+     */
+    List<CommentDO> selectTwoLevelCommentByIds(@Param("commentIds") List<Long> commentIds);
 }
