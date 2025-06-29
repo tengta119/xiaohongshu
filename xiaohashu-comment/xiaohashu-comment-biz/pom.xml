@@ -58,6 +58,12 @@
             <artifactId>xiaoha-spring-boot-starter-jackson</artifactId>
         </dependency>
 
+        <!-- Caffeine 本地缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- 快手 Buffer Trigger -->
         <dependency>
             <groupId>com.github.phantomthief</groupId>
