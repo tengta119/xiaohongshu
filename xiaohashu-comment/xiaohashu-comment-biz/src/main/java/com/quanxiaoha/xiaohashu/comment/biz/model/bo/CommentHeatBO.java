@@ -26,4 +26,8 @@ public class CommentHeatBO {
      */
     private Double heat;
 
+    /**
+     * 笔记 ID
+     */
+    private Long noteId;
 }

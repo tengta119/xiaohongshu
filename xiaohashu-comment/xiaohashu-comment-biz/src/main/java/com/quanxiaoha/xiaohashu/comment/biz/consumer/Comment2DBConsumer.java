@@ -6,6 +6,7 @@ import com.alibaba.nacos.shaded.com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.comment.biz.constants.MQConstants;
+import com.quanxiaoha.xiaohashu.comment.biz.constants.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject.CommentDO;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.quanxiaoha.xiaohashu.comment.biz.enums.CommentLevelEnum;
@@ -28,8 +29,12 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -61,6 +66,9 @@ public class Comment2DBConsumer {
 
     @Resource
     private RocketMQTemplate rocketMQTemplate;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Bean
     public DefaultMQPushConsumer mqPushConsumer() throws MQClientException {
@@ -199,6 +207,10 @@ public class Comment2DBConsumer {
                             ).toList();
 
                     Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countPublishCommentMqDTOS)).build();
+
+                    // 同步一级评论到 Redis 热点评论 ZSET 中
+                    syncOneLevelComment2RedisZSet(commentBOS);
+
                     rocketMQTemplate.asyncSend(MQConstants.TOPIC_COUNT_NOTE_COMMENT, message, new SendCallback() {
                         @Override
                         public void onSuccess(SendResult sendResult) {
@@ -225,6 +237,33 @@ public class Comment2DBConsumer {
 
         consumer.start();
         return consumer;
+    }
+
+    /**
+     * 同步一级评论到 Redis 热点评论 ZSET 中
+     */
+    private void syncOneLevelComment2RedisZSet(List<CommentBO> commentBOS) {
+        // 过滤出一级评论，并按所属笔记进行分组，转换为一个 Map 字典
+        Map<Long, List<CommentBO>> commentIdAndBOListMap  = commentBOS.stream()
+                .filter(commentBO -> Objects.equals(commentBO.getLevel(), CommentLevelEnum.ONE.getCode()))
+                .collect(Collectors.groupingBy(CommentBO::getNoteId));
+
+        commentIdAndBOListMap.forEach((noteId, commentBOList) -> {
+            // 构建 Redis 热点评论 ZSET Key
+            String key = RedisKeyConstants.buildCommentListKey(noteId);
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+            script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/add_hot_comments.lua")));
+            script.setResultType(Long.class);
+
+            // 构建执行 Lua 脚本所需的 ARGS 参数
+            List<Object> args = Lists.newArrayList();
+            commentBOList.forEach(commentBO -> {
+                args.add(commentBO.getId());
+                args.add(0);
+            });
+            redisTemplate.execute(script, Collections.singletonList(key), args.toArray());
+        });
     }
 
     @PreDestroy
