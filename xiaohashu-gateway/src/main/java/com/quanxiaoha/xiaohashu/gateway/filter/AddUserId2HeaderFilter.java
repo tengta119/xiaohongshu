@@ -48,12 +48,6 @@ public class AddUserId2HeaderFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         log.info("==================> TokenConvertFilter");
-        Integer userId = null;
-        try {
-            userId = Math.toIntExact(StpUtil.getLoginIdAsLong());
-        } catch (Exception e) {
-            return chain.filter(exchange);
-        }
         // 从请求头中获取 Token 数据
         List<String> tokenList = exchange.getRequest().getHeaders().get(TOKEN_HEADER_KEY);
 
@@ -68,13 +62,12 @@ public class AddUserId2HeaderFilter implements GlobalFilter {
         // 构建 Redis Key
         String tokenRedisKey = RedisKeyConstants.SA_TOKEN_TOKEN_KEY_PREFIX + token;
         // 查询 Redis, 获取用户 ID
-        userId = (Integer) redisTemplate.opsForValue().get(tokenRedisKey);
+        Integer userId = (Integer) redisTemplate.opsForValue().get(tokenRedisKey);
 
 
         log.info("## 当前登录的用户 ID: {}", userId);
-        Integer finalUserId = userId;
         ServerWebExchange newExchange = exchange.mutate()
-                .request(builder -> builder.header(HEADER_USER_ID, String.valueOf(finalUserId)))
+                .request(builder -> builder.header(HEADER_USER_ID, String.valueOf(userId)))
                 .build();
         return chain.filter(newExchange);
     }

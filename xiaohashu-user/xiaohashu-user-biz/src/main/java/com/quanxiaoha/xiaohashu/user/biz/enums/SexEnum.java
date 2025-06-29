@@ -5,12 +5,7 @@ import lombok.Getter;
 
 import java.util.Objects;
 
-/**
- * @author: 犬小哈
- * @url: www.quanxiaoha.com
- * @date: 2023-08-15 10:33
- * @description: 性别
- **/
+
 @Getter
 @AllArgsConstructor
 public enum SexEnum {

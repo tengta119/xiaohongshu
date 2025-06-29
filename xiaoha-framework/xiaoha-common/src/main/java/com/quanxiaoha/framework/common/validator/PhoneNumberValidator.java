@@ -3,12 +3,7 @@ package com.quanxiaoha.framework.common.validator;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-/**
- * @author: 犬小哈
- * @date: 2024/4/15 22:23
- * @version: v1.0.0
- * @description: TODO
- **/
+
 public class PhoneNumberValidator implements ConstraintValidator<PhoneNumber, String> {
 
     @Override

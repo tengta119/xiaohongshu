@@ -7,7 +7,6 @@ package com.quanxiaoha.framework.common.constant;
  * @date 2025/5/30 09:29
  * @description: 全局常量
  */
-
 public interface GlobalConstants {
 
     /**

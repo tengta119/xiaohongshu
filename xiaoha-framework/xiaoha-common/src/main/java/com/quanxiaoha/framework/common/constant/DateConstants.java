@@ -2,12 +2,7 @@ package com.quanxiaoha.framework.common.constant;
 
 import java.time.format.DateTimeFormatter;
 
-/**
- * @author: 犬小哈
- * @url: www.quanxiaoha.com
- * @date: 2024/5/5 15:40
- * @description: 日期全局常量
- **/
+
 public interface DateConstants {
 
     /**

@@ -104,7 +104,7 @@ public class NoteServiceImpl implements NoteService {
 
         String imgUris = null;
         // 笔记内容是否为空，默认值为 true，即空
-        Boolean isContentEmpty = true;
+        boolean isContentEmpty = true;
         String videoUri = null;
         switch (noteTypeEnum) {
             case IMAGE_TEXT:
@@ -140,7 +140,7 @@ public class NoteServiceImpl implements NoteService {
             topicName = topicDOMapper.selectNameByPrimaryKey(topicId);
         }
 
-        long creatorId = LoginUserContextHolder.getUserId();
+        Long creatorId = LoginUserContextHolder.getUserId();
         Long snowflakeIdId = Long.valueOf(distributedIdGeneratorRpcService.getSnowflakeId());
         // 构建笔记 DO 对象
         NoteDO noteDO = NoteDO.builder()
@@ -964,8 +964,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 异步初始化用户收藏笔记 ZSet
-     * @param userId
-     * @param userNoteCollectZSetKey
      */
     private void asynInitUserNoteCollectsZSet(Long userId, String userNoteCollectZSetKey) {
         executor.execute(() -> {
@@ -986,10 +984,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 构建笔记收藏 ZSET Lua 脚本参数
-     *
-     * @param noteCollectionDOS
-     * @param expireSeconds
-     * @return
      */
     private static Object[] buildNoteCollectZSetLuaArgs(List<NoteCollectionDO> noteCollectionDOS, long expireSeconds) {
         int argsLength = noteCollectionDOS.size() * 2 + 1; // 每个笔记收藏关系有 2 个参数（score 和 value），最后再跟一个过期时间
@@ -1008,9 +1002,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 初始化笔记收藏布隆过滤器
-     * @param userId
-     * @param expireSeconds
-     * @param bloomUserNoteCollectListKey
      */
     private void batchAddNoteCollect2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteCollectListKey) {
         try {
@@ -1034,8 +1025,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 异步初始化用户点赞笔记 ZSet
-     * @param userId
-     * @param userNoteLikeZSetKey
      */
     private void asynInitUserNoteLikesZSet(Long userId, String userNoteLikeZSetKey) {
         executor.execute(() -> {
@@ -1066,10 +1055,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 构建 Lua 脚本参数
-     *
-     * @param noteLikeDOS
-     * @param expireSeconds
-     * @return
      */
     private static Object[] buildNoteLikeZSetLuaArgs(List<NoteLikeDO> noteLikeDOS, long expireSeconds) {
         int argsLength = noteLikeDOS.size() * 2 + 1; // 每个笔记点赞关系有 2 个参数（score 和 value），最后再跟一个过期时间
@@ -1088,9 +1073,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 异步初始化布隆过滤器
-     * @param userId
-     * @param expireSeconds
-     * @param bloomUserNoteLikeListKey
      */
     private void batchAddNoteLike2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteLikeListKey) {
         executor.execute(() -> {
@@ -1118,7 +1100,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 校验笔记是否存在，若存在，则获取笔记的发布者 ID
-     * @param noteId
      */
     private Long checkNoteIsExistAndGetCreatorId(Long noteId) {
         // 先从本地缓存校验
@@ -1160,9 +1141,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 校验笔记的可见性
-     * @param visible 是否可见
-     * @param currUserId 当前用户 ID
-     * @param creatorId 笔记创建者
      */
     private void checkNoteVisible(Integer visible, Long currUserId, Long creatorId) {
         if (Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
@@ -1173,8 +1151,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 校验笔记的可见性（针对 VO 实体类）
-     * @param userId
-     * @param findNoteDetailRspVO
      */
     private void checkNoteVisibleFromVO(Long userId, FindNoteDetailRspVO findNoteDetailRspVO) {
         if (Objects.nonNull(findNoteDetailRspVO)) {
@@ -1185,7 +1161,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 删除本地笔记缓存
-     * @param noteId
      */
     public void deleteNoteLocalCache(Long noteId) {
         LOCAL_CACHE.invalidate(noteId);

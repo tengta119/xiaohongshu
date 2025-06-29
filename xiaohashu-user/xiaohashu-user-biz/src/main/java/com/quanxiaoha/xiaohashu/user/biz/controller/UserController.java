@@ -15,12 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * @author: 犬小哈
- * @date: 2024/4/4 13:22
- * @version: v1.0.0
- * @description: 用户
- **/
+
 @RestController
 @RequestMapping("/user")
 @Slf4j
@@ -31,9 +26,6 @@ public class UserController {
 
     /**
      * 用户信息修改
-     *
-     * @param updateUserInfoReqVO
-     * @return
      */
     @PostMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Response<?> updateUserInfo(@Validated UpdateUserInfoReqVO updateUserInfoReqVO) {
