@@ -13,7 +13,47 @@ public class RedisKeyConstants {
      */
     private static final String HAVE_FIRST_REPLY_COMMENT_KEY_PREFIX = "comment:havaFirstReplyCommentId:";
 
+    /**
+     * Key 前缀：笔记评论总数
+     */
+    private static final String COUNT_COMMENT_TOTAL_KEY_PREFIX = "count:note:";
 
+    /**
+     * Hash Field 键：评论总数
+     */
+    public static final String FIELD_COMMENT_TOTAL = "commentTotal";
+
+    /**
+     * Key 前缀：评论分页 ZSET
+     */
+    private static final String COMMENT_LIST_KEY_PREFIX = "comment:list:";
+
+
+    /**
+     * Key 前缀：评论详情 JSON
+     */
+    private static final String COMMENT_DETAIL_KEY_PREFIX = "comment:detail:";
+
+    /**
+     * 构建评论详情完整 KEY
+     */
+    public static String buildCommentDetailKey(Object commentId) {
+        return COMMENT_DETAIL_KEY_PREFIX + commentId;
+    }
+
+    /**
+     * 构建评论分页 ZSET 完整 KEY
+     */
+    public static String buildCommentListKey(Long noteId) {
+        return COMMENT_LIST_KEY_PREFIX + noteId;
+    }
+
+    /**
+     * 构建笔记评论总数完整 KEY
+     */
+    public static String buildNoteCommentTotalKey(Long noteId) {
+        return COUNT_COMMENT_TOTAL_KEY_PREFIX + noteId;
+    }
 
     /**
      * 构建完整 KEY

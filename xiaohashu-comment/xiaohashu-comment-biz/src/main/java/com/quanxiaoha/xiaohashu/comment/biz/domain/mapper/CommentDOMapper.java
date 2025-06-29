@@ -58,4 +58,9 @@ public interface CommentDOMapper {
      * 批量查询二级评论
      */
     List<CommentDO> selectTwoLevelCommentByIds(@Param("commentIds") List<Long> commentIds);
+
+    /**
+     * 查询热门评论
+     */
+    List<CommentDO> selectHeatComments(Long noteId);
 }

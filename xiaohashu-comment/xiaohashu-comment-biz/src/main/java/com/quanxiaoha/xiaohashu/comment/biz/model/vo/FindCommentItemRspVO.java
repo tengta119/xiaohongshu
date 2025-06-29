@@ -67,4 +67,9 @@ public class FindCommentItemRspVO {
      */
     private FindCommentItemRspVO firstReplyComment;
 
+    /**
+     * 热度
+     */
+    private Double heat;
+
 }

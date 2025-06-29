@@ -45,7 +45,7 @@ public class CommentDO {
 
     private Long childCommentTotal;
 
-    private BigDecimal heat;
+    private Double heat;
 
     private Long firstReplyCommentId;
 

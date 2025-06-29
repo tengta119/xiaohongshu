@@ -1,6 +1,7 @@
 package com.quanxiaoha.xiaohashu.comment.biz.enums;
 
 
+import com.quanxiaoha.framework.common.exception.BaseExceptionInterface;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,11 +13,12 @@ import lombok.Getter;
  */
 @AllArgsConstructor
 @Getter
-public enum ResponseCodeEnum {
+public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     // ----------- 通用异常状态码 -----------
     SYSTEM_ERROR("COMMENT-10000", "出错啦，后台小哥正在努力修复中..."),
     PARAM_NOT_VALID("COMMENT-10001", "参数错误"),
+    COMMENT_NOT_FOUND("COMMENT-20001", "此评论不存在"),
 
     // ----------- 业务异常状态码 -----------
     ;
