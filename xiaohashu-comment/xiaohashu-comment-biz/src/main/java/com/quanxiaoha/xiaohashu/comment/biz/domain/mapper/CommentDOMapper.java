@@ -75,4 +75,9 @@ public interface CommentDOMapper {
     List<CommentDO> selectChildPageList(@Param("parentId") Long parentId,
                                         @Param("offset") long offset,
                                         @Param("pageSize") long pageSize);
+
+    /**
+     * 批量查询计数数据
+     */
+    List<CommentDO> selectCommentCountByIds(@Param("commentIds") List<Long> commentIds);
 }

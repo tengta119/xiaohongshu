@@ -24,7 +24,7 @@ public class CommentDO {
 
     private String imageUrl;
 
-    private Byte level;
+    private Integer level;
 
     private Long replyTotal;
 
@@ -36,7 +36,7 @@ public class CommentDO {
 
     private Long replyUserId;
 
-    private Byte isTop;
+    private Integer isTop;
 
     private LocalDateTime createTime;
 

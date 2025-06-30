@@ -6,6 +6,7 @@ import com.github.phantomthief.collection.BufferTrigger;
 import com.google.common.collect.Lists;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.count.biz.constant.MQConstants;
+import com.quanxiaoha.xiaohashu.count.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.count.biz.domain.mapper.CommentDOMapper;
 import com.quanxiaoha.xiaohashu.count.biz.enums.CommentLevelEnum;
 import com.quanxiaoha.xiaohashu.count.biz.model.dto.CountPublishCommentMqDTO;
@@ -16,6 +17,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
@@ -40,6 +42,8 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
     CommentDOMapper commentDOMapper;
     @Resource
     RocketMQTemplate rocketMQTemplate;
+    @Resource
+    RedisTemplate<String, Object> redisTemplate;
 
     private final BufferTrigger<String> bufferTrigger = BufferTrigger.<String>batchBlocking()
             .bufferSize(5000)
@@ -73,9 +77,21 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
             return;
         }
 
-        // 更新一级评论的下级评论总数，进行累加操作
-        groupMap.forEach((parentId, countPublishCommentMqDTOList) ->
-                commentDOMapper.updateChildCommentTotal(parentId, countPublishCommentMqDTOList.size()));
+        for (Map.Entry<Long, List<CountPublishCommentMqDTO>> entry : groupMap.entrySet()) {
+            Long parentId = entry.getKey();
+            int count = entry.getValue().size();
+
+            String key = RedisKeyConstants.buildCountCommentKey(parentId);
+            Boolean hasKey = redisTemplate.hasKey(key);
+            if (hasKey) {
+                redisTemplate.opsForHash()
+                        .increment(key, RedisKeyConstants.FIELD_CHILD_COMMENT_TOTAL, count);
+            }
+
+            // 更新一级评论的下级评论总数，进行累加操作
+            commentDOMapper.updateChildCommentTotal(parentId, count);
+        };
+
 
         Set<Long> commentIds = groupMap.keySet();
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(commentIds)).build();

@@ -21,6 +21,7 @@ import com.quanxiaoha.xiaohashu.comment.biz.constants.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject.CommentDO;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.quanxiaoha.xiaohashu.comment.biz.domain.mapper.NoteCountDOMapper;
+import com.quanxiaoha.xiaohashu.comment.biz.enums.CommentLevelEnum;
 import com.quanxiaoha.xiaohashu.comment.biz.enums.ResponseCodeEnum;
 import com.quanxiaoha.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.quanxiaoha.xiaohashu.comment.biz.model.vo.*;
@@ -36,6 +37,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -196,8 +198,13 @@ public class CommentServiceImpl implements CommentService {
                         }
                     }
 
-                    // 若 localCacheExpiredCommentIds 大小等于 0，说明评论详情数据都在本地缓存中，直接响应返参
+                    // 若 localCacheExpiredCommentIds 大小等于 0，说明评论详情数据都在本地缓存中
                     if (CollUtil.size(localCacheExpiredCommentIds) == 0) {
+
+                        if (CollUtil.isNotEmpty(commentRspVOS)) {
+                            setCommentCountData(commentRspVOS, localCacheExpiredCommentIds);
+                        }
+
                         return PageResponse.success(commentRspVOS, pageNo, count, pageSize);
                     }
 
@@ -221,6 +228,10 @@ public class CommentServiceImpl implements CommentService {
                         } else {
                             expiredCommentIds.add(Long.valueOf(commentIdList.get(i).toString()));
                         }
+                    }
+
+                    if (CollUtil.isNotEmpty(commentRspVOS)) {
+                        setCommentCountData(commentRspVOS, expiredCommentIds);
                     }
 
                     if (CollUtil.isNotEmpty(expiredCommentIds)) {
@@ -258,118 +269,138 @@ public class CommentServiceImpl implements CommentService {
         return PageResponse.success(commentRspVOS, pageNo, pageSize);
     }
 
-    @Override
-    public PageResponse<FindChildCommentItemRspVO> findChildCommentPageList(FindChildCommentPageListReqVO findChildCommentPageListReqVO) {
-        // 父评论 ID
-        Long parentCommentId = findChildCommentPageListReqVO.getParentCommentId();
-        // 当前页码
-        Integer pageNo = findChildCommentPageListReqVO.getPageNo();
-        // 每页展示的二级评论数 (小红书 APP 中是一次查询 6 条)
-        long pageSize = 6;
-
-        // TODO: 先从缓存中查（后面补充）
-
-        Long count = commentDOMapper.selectChildCommentTotalById(parentCommentId);
-        if (Objects.isNull(count) || count == 0) {
-            return PageResponse.success(null, pageNo, pageSize);
-        }
-
-
-        // 计算分页查询的偏移量 offset (需要 +1，因为最早回复的二级评论已经被展示了)
-        long offset = PageResponse.getOffset(pageNo, pageSize) + 1;
-        // 分页查询子评论
-        List<CommentDO> childCommentDOS = commentDOMapper.selectChildPageList(parentCommentId, offset, pageSize);
-
-        // 调用 KV 服务需要的入参
-        List<FindCommentContentReqDTO> findCommentContentReqDTOS = Lists.newArrayList();
-        // 调用用户服务的入参
-        Set<Long> userIds = Sets.newHashSet();
-        // 归属的笔记 ID
-        Long noteId = null;
-
-        for (CommentDO commentDO : childCommentDOS) {
-            noteId = commentDO.getNoteId();
-            Boolean isContentEmpty = commentDO.getIsContentEmpty();
-            if (!isContentEmpty) {
-                FindCommentContentReqDTO findCommentContentReqDTO = FindCommentContentReqDTO.builder()
-                        .contentId(commentDO.getContentUuid())
-                        .yearMonth(DateConstants.DATE_FORMAT_Y_M.format(commentDO.getCreateTime()))
-                        .build();
-                findCommentContentReqDTOS.add(findCommentContentReqDTO);
+    /**
+     * 设置评论 VO 的计数
+     * @param commentRspVOS 返参 VO 集合
+     * @param expiredCommentIds 缓存中已失效的评论 ID 集合
+     */
+    private void setCommentCountData(List<FindCommentItemRspVO> commentRspVOS,
+                                     List<Long> expiredCommentIds) {
+        // 准备从评论 Hash 中查询计数 (子评论总数、被点赞数)
+        // 缓存中存在的评论 ID
+        List<Long> notExpireCommentIds = Lists.newArrayList();
+        commentRspVOS.forEach(commentItemRspVO -> {
+            Long commentId = commentItemRspVO.getCommentId();
+            notExpireCommentIds.add(commentId);
+            FindCommentItemRspVO firstReplyComment = commentItemRspVO.getFirstReplyComment();
+            if (Objects.nonNull(firstReplyComment)) {
+                notExpireCommentIds.add(firstReplyComment.getCommentId());
             }
-            userIds.add(commentDO.getUserId());
-            Long replyCommentId = commentDO.getReplyCommentId();
-            Long parentId = commentDO.getParentId();
-            if (!Objects.equals(parentId, replyCommentId)) {
-                userIds.add(commentDO.getReplyUserId());
+        });
+
+
+        // 构建需要查询的 Hash Key 集合
+        List<String> commentCountKeys = notExpireCommentIds.stream()
+                .map(RedisKeyConstants::buildCountCommentKey).toList();
+        List<Object> results = redisTemplate.executePipelined(new SessionCallback<>() {
+            @Override
+            public Object execute(RedisOperations operations) {
+                // 遍历需要查询的评论计数的 Hash 键集合
+                commentCountKeys.forEach(key ->
+                        // 在管道中执行 Redis 的 hash.entries 操作
+                        // 此操作会获取指定 Hash 键中所有的字段和值
+                        operations.opsForHash().entries(key));
+                return null;
             }
+        });
+
+        // 已失效的 Hash 评论 ID
+        List<Long> expiredCountCommentIds = Lists.newArrayList();
+        // 评论 ID - 计数数据字典
+        Map<Long, Map<Object, Object>> commentIdAndCountMap = Maps.newHashMap();
+        // 遍历未过期的评论 ID 集合
+        for (int i = 0; i < notExpireCommentIds.size(); i++) {
+            Long commentId = Long.valueOf(notExpireCommentIds.get(i).toString());
+            Map<Object, Object> commentCountMap = (Map<Object, Object>) results.get(i);
+            if (CollUtil.isEmpty(commentCountMap)) {
+                expiredCountCommentIds.add(commentId);
+                continue;
+            }
+            commentIdAndCountMap.put(commentId, commentCountMap);
         }
 
-        // RPC: 调用 KV 服务，批量获取评论内容
-        List<FindCommentContentRspDTO> findCommentContentRspDTOS = keyValueRpcService
-                .batchFindCommentContent(noteId, findCommentContentReqDTOS);
-        Map<String, String> commentUuidAndContentMap = null;
-        if (CollUtil.isNotEmpty(findCommentContentRspDTOS)) {
-            commentUuidAndContentMap = findCommentContentRspDTOS.stream()
-                    .collect(Collectors.toMap(FindCommentContentRspDTO::getContentId, FindCommentContentRspDTO::getContent));
-        }
-
-        // RPC: 调用用户服务，批量获取用户信息（头像、昵称等）
-        List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.findByIds(userIds.stream().toList());
-        Map<Long, FindUserByIdRspDTO> userIdAndDTOMap = null;
-        if (CollUtil.isNotEmpty(findUserByIdRspDTOS)) {
-            userIdAndDTOMap = findUserByIdRspDTOS.stream()
-                    .collect(Collectors.toMap(FindUserByIdRspDTO::getId, dto -> dto));
-        }
-
-        // 分页返参
-        List<FindChildCommentItemRspVO> childCommentItemRspVOS = Lists.newArrayList();
-        for (CommentDO childCommentDO  : childCommentDOS) {
-            // 构建 VO 实体类
-            Long userId = childCommentDO.getUserId();
-            FindChildCommentItemRspVO childCommentRspVO = FindChildCommentItemRspVO.builder()
-                    .userId(userId)
-                    .commentId(childCommentDO.getId())
-                    .imageUrl(childCommentDO.getImageUrl())
-                    .createTime(DateUtils.formatRelativeTime(childCommentDO.getCreateTime()))
-                    .likeTotal(childCommentDO.getLikeTotal())
-                    .build();
-
-            if (CollUtil.isNotEmpty(userIdAndDTOMap)) {
-                FindUserByIdRspDTO findUserByIdRspDTO = userIdAndDTOMap.get(childCommentDO.getUserId());
-                if (Objects.nonNull(findUserByIdRspDTO)) {
-                    childCommentRspVO.setAvatar(findUserByIdRspDTO.getAvatar());
-                    childCommentRspVO.setNickname(findUserByIdRspDTO.getNickName());
+        // 若已过期的计数评论 ID 集合大于 0，说明部分计数数据不在 Redis 缓存中
+        // 需要查询数据库，并将这部分的评论计数 Hash 同步到 Redis 中
+        if (CollUtil.size(expiredCountCommentIds) > 0) {
+            List<CommentDO> commentDOS = commentDOMapper.selectByCommentIds(expiredCountCommentIds);
+            commentDOS.forEach(commentItemDO -> {
+                Integer level = commentItemDO.getLevel();
+                Map<Object, Object> map = Maps.newHashMap();
+                map.put(RedisKeyConstants.FIELD_LIKE_TOTAL, commentItemDO.getLikeTotal());
+                // 只有一级评论需要统计子评论总数
+                if (Objects.equals(level, CommentLevelEnum.ONE.getCode())) {
+                    map.put(RedisKeyConstants.FIELD_CHILD_COMMENT_TOTAL, commentItemDO.getChildCommentTotal());
                 }
+                commentIdAndCountMap.put(commentItemDO.getId(), map);
+            });
 
-                // 评论回复的哪个
-                Long replyCommentId = childCommentDO.getReplyCommentId();
-                Long parentId = childCommentDO.getParentId();
-                if (Objects.nonNull(replyCommentId) && !Objects.equals(parentId, replyCommentId)) {
-                    Long replyUserId = childCommentDO.getReplyUserId();
-                    FindUserByIdRspDTO replyUser = userIdAndDTOMap.get(replyUserId);
-                    childCommentRspVO.setReplyUserName(replyUser.getNickName());
-                    childCommentRspVO.setReplyUserId(replyUser.getId());
+            threadPoolTaskExecutor.execute(() -> redisTemplate.executePipelined(new SessionCallback<>() {
+                @Override
+                public Object execute(RedisOperations operations) throws DataAccessException {
+
+                    commentDOS.forEach(commentDO -> {
+                        // 构建 Hash Key
+                        String key = RedisKeyConstants.buildCountCommentKey(commentDO.getId());
+                        // 评论级别
+                        Integer level = commentDO.getLevel();
+                        // 设置 Field 数据
+                        Map<String, Long> fieldsMap = Maps.newHashMap();
+                        fieldsMap.put(RedisKeyConstants.FIELD_LIKE_TOTAL, commentDO.getLikeTotal());
+                        if (Objects.equals(level, CommentLevelEnum.ONE.getCode())) {
+                            fieldsMap.put(RedisKeyConstants.FIELD_CHILD_COMMENT_TOTAL, commentDO.getChildCommentTotal());
+                        }
+                        // 添加 Hash 数据
+                        operations.opsForHash().putAll(key, fieldsMap);
+
+                        // 设置随机过期时间 (5小时以内)
+                        long expireTime = RandomUtil.randomInt(5 * 60 * 60);
+                        operations.expire(key, expireTime, TimeUnit.SECONDS);
+                    });
+
+                    return null;
                 }
-            }
-
-            if (CollUtil.isNotEmpty(commentUuidAndContentMap)) {
-                String contentUuid = childCommentDO.getContentUuid();
-                if (StringUtils.isNotBlank(contentUuid)) {
-                    childCommentRspVO.setContent(commentUuidAndContentMap.get(contentUuid));
-                }
-            }
-
-            childCommentItemRspVOS.add(childCommentRspVO);
+            }));
         }
 
-        return PageResponse.success(childCommentItemRspVOS, pageNo, pageSize);
+        // 遍历 VO, 设置对应评论的二级评论数、点赞数
+        for (FindCommentItemRspVO commentRspVO : commentRspVOS) {
+            // 评论 ID
+            Long commentId = commentRspVO.getCommentId();
+
+            // 若当前这条评论是从数据库中查询出来的, 则无需设置二级评论数、点赞数，以数据库查询出来的为主
+            if (CollUtil.isNotEmpty(expiredCommentIds)
+                    && expiredCommentIds.contains(commentId)) {
+                continue;
+            }
+            // 设置一级评论的子评论总数、点赞数
+            Map<Object, Object> hash = commentIdAndCountMap.get(commentId);
+            if (CollUtil.isNotEmpty(hash)) {
+                Object childCommentTotalObj = hash.get(RedisKeyConstants.FIELD_CHILD_COMMENT_TOTAL);
+                Long childCommentTotal = Objects.isNull(childCommentTotalObj) ? 0 : Long.parseLong(childCommentTotalObj.toString());
+                Object likeTotalObj = hash.get(RedisKeyConstants.FIELD_LIKE_TOTAL);
+                Long likeTotal = Objects.isNull(likeTotalObj) ? 0 : Long.parseLong(likeTotalObj.toString());
+                commentRspVO.setChildCommentTotal(childCommentTotal);
+                commentRspVO.setLikeTotal(likeTotal);
+                // 最初回复的二级评论
+                FindCommentItemRspVO firstCommentVO = commentRspVO.getFirstReplyComment();
+                if (Objects.nonNull(firstCommentVO)) {
+                    Long firstCommentId = firstCommentVO.getCommentId();
+                    Map<Object, Object> firstCommentHash = commentIdAndCountMap.get(firstCommentId);
+                    if (CollUtil.isNotEmpty(firstCommentHash)) {
+                        Long firstCommentLikeTotal = Long.valueOf(firstCommentHash.get(RedisKeyConstants.FIELD_LIKE_TOTAL).toString());
+                        firstCommentVO.setLikeTotal(firstCommentLikeTotal);
+                    }
+                }
+            }
+        }
     }
 
     /**
      * 获取全部评论数据，并将评论详情同步到 Redis 中
      */
-    private void getCommentDataAndSync2Redis(List<CommentDO> oneLevelCommentDOS, Long noteId, List<FindCommentItemRspVO> commentRspVOS) {
+    private void getCommentDataAndSync2Redis(List<CommentDO> oneLevelCommentDOS,
+                                             Long noteId,
+                                             List<FindCommentItemRspVO> commentRspVOS) {
         // 过滤出所有最早回复的二级评论 ID
         List<Long> twoLevelCommentIds = oneLevelCommentDOS.stream()
                 .map(CommentDO::getFirstReplyCommentId)
@@ -574,7 +605,9 @@ public class CommentServiceImpl implements CommentService {
     /**
      * 设置评论内容
      */
-    private static void setCommentContent(Map<String, String> commentUuidAndContentMap, CommentDO commentDO1, FindCommentItemRspVO firstReplyCommentRspVO) {
+    private static void setCommentContent(Map<String, String> commentUuidAndContentMap,
+                                          CommentDO commentDO1,
+                                          FindCommentItemRspVO firstReplyCommentRspVO) {
         if (CollUtil.isNotEmpty(commentUuidAndContentMap)) {
             String contentUuid = commentDO1.getContentUuid();
             if (StringUtils.isNotBlank(contentUuid)) {
@@ -586,12 +619,125 @@ public class CommentServiceImpl implements CommentService {
     /**
      * 设置用户信息
      */
-    private static void setUserInfo(Map<Long, CommentDO> commentIdAndDOMap, Map<Long, FindUserByIdRspDTO> userIdAndDTOMap, Long userId, FindCommentItemRspVO oneLevelCommentRspVO) {
+    private static void setUserInfo(Map<Long, CommentDO> commentIdAndDOMap,
+                                    Map<Long, FindUserByIdRspDTO> userIdAndDTOMap,
+                                    Long userId,
+                                    FindCommentItemRspVO oneLevelCommentRspVO) {
         FindUserByIdRspDTO findUserByIdRspDTO = userIdAndDTOMap.get(userId);
         if (Objects.nonNull(findUserByIdRspDTO)) {
             oneLevelCommentRspVO.setAvatar(findUserByIdRspDTO.getAvatar());
             oneLevelCommentRspVO.setNickname(findUserByIdRspDTO.getNickName());
         }
     }
+
+
+    @Override
+    public PageResponse<FindChildCommentItemRspVO> findChildCommentPageList(FindChildCommentPageListReqVO findChildCommentPageListReqVO) {
+        // 父评论 ID
+        Long parentCommentId = findChildCommentPageListReqVO.getParentCommentId();
+        // 当前页码
+        Integer pageNo = findChildCommentPageListReqVO.getPageNo();
+        // 每页展示的二级评论数 (小红书 APP 中是一次查询 6 条)
+        long pageSize = 6;
+
+        // TODO: 先从缓存中查（后面补充）
+
+        Long count = commentDOMapper.selectChildCommentTotalById(parentCommentId);
+        if (Objects.isNull(count) || count == 0) {
+            return PageResponse.success(null, pageNo, pageSize);
+        }
+
+
+        // 计算分页查询的偏移量 offset (需要 +1，因为最早回复的二级评论已经被展示了)
+        long offset = PageResponse.getOffset(pageNo, pageSize) + 1;
+        // 分页查询子评论
+        List<CommentDO> childCommentDOS = commentDOMapper.selectChildPageList(parentCommentId, offset, pageSize);
+
+        // 调用 KV 服务需要的入参
+        List<FindCommentContentReqDTO> findCommentContentReqDTOS = Lists.newArrayList();
+        // 调用用户服务的入参
+        Set<Long> userIds = Sets.newHashSet();
+        // 归属的笔记 ID
+        Long noteId = null;
+
+        for (CommentDO commentDO : childCommentDOS) {
+            noteId = commentDO.getNoteId();
+            Boolean isContentEmpty = commentDO.getIsContentEmpty();
+            if (!isContentEmpty) {
+                FindCommentContentReqDTO findCommentContentReqDTO = FindCommentContentReqDTO.builder()
+                        .contentId(commentDO.getContentUuid())
+                        .yearMonth(DateConstants.DATE_FORMAT_Y_M.format(commentDO.getCreateTime()))
+                        .build();
+                findCommentContentReqDTOS.add(findCommentContentReqDTO);
+            }
+            userIds.add(commentDO.getUserId());
+            Long replyCommentId = commentDO.getReplyCommentId();
+            Long parentId = commentDO.getParentId();
+            if (!Objects.equals(parentId, replyCommentId)) {
+                userIds.add(commentDO.getReplyUserId());
+            }
+        }
+
+        // RPC: 调用 KV 服务，批量获取评论内容
+        List<FindCommentContentRspDTO> findCommentContentRspDTOS = keyValueRpcService
+                .batchFindCommentContent(noteId, findCommentContentReqDTOS);
+        Map<String, String> commentUuidAndContentMap = null;
+        if (CollUtil.isNotEmpty(findCommentContentRspDTOS)) {
+            commentUuidAndContentMap = findCommentContentRspDTOS.stream()
+                    .collect(Collectors.toMap(FindCommentContentRspDTO::getContentId, FindCommentContentRspDTO::getContent));
+        }
+
+        // RPC: 调用用户服务，批量获取用户信息（头像、昵称等）
+        List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.findByIds(userIds.stream().toList());
+        Map<Long, FindUserByIdRspDTO> userIdAndDTOMap = null;
+        if (CollUtil.isNotEmpty(findUserByIdRspDTOS)) {
+            userIdAndDTOMap = findUserByIdRspDTOS.stream()
+                    .collect(Collectors.toMap(FindUserByIdRspDTO::getId, dto -> dto));
+        }
+
+        // 分页返参
+        List<FindChildCommentItemRspVO> childCommentItemRspVOS = Lists.newArrayList();
+        for (CommentDO childCommentDO  : childCommentDOS) {
+            // 构建 VO 实体类
+            Long userId = childCommentDO.getUserId();
+            FindChildCommentItemRspVO childCommentRspVO = FindChildCommentItemRspVO.builder()
+                    .userId(userId)
+                    .commentId(childCommentDO.getId())
+                    .imageUrl(childCommentDO.getImageUrl())
+                    .createTime(DateUtils.formatRelativeTime(childCommentDO.getCreateTime()))
+                    .likeTotal(childCommentDO.getLikeTotal())
+                    .build();
+
+            if (CollUtil.isNotEmpty(userIdAndDTOMap)) {
+                FindUserByIdRspDTO findUserByIdRspDTO = userIdAndDTOMap.get(childCommentDO.getUserId());
+                if (Objects.nonNull(findUserByIdRspDTO)) {
+                    childCommentRspVO.setAvatar(findUserByIdRspDTO.getAvatar());
+                    childCommentRspVO.setNickname(findUserByIdRspDTO.getNickName());
+                }
+
+                // 评论回复的哪个
+                Long replyCommentId = childCommentDO.getReplyCommentId();
+                Long parentId = childCommentDO.getParentId();
+                if (Objects.nonNull(replyCommentId) && !Objects.equals(parentId, replyCommentId)) {
+                    Long replyUserId = childCommentDO.getReplyUserId();
+                    FindUserByIdRspDTO replyUser = userIdAndDTOMap.get(replyUserId);
+                    childCommentRspVO.setReplyUserName(replyUser.getNickName());
+                    childCommentRspVO.setReplyUserId(replyUser.getId());
+                }
+            }
+
+            if (CollUtil.isNotEmpty(commentUuidAndContentMap)) {
+                String contentUuid = childCommentDO.getContentUuid();
+                if (StringUtils.isNotBlank(contentUuid)) {
+                    childCommentRspVO.setContent(commentUuidAndContentMap.get(contentUuid));
+                }
+            }
+
+            childCommentItemRspVOS.add(childCommentRspVO);
+        }
+
+        return PageResponse.success(childCommentItemRspVOS, pageNo, pageSize);
+    }
+
 
 }

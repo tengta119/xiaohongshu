@@ -1,5 +1,5 @@
 server:
-  port: 8084 # 项目启动的端口
+  port: 8092 # 项目启动的端口
 
 spring:
   profiles:
