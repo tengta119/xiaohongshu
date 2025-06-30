@@ -80,4 +80,10 @@ public interface CommentDOMapper {
      * 批量查询计数数据
      */
     List<CommentDO> selectCommentCountByIds(@Param("commentIds") List<Long> commentIds);
+
+    /**
+     * 查询二级评论分页数据
+     */
+    List<CommentDO> selectChildCommentsByParentIdAndLimit(@Param("parentId") Long parentId,
+                                            @Param("limit") long limit);
 }
