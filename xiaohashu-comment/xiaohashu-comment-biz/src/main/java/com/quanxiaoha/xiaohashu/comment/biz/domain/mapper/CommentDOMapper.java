@@ -63,4 +63,16 @@ public interface CommentDOMapper {
      * 查询热门评论
      */
     List<CommentDO> selectHeatComments(Long noteId);
+
+    /**
+     * 查询一级评论下子评论总数
+     */
+    Long selectChildCommentTotalById(Long commentId);
+
+    /**
+     * 查询二级评论分页数据
+     */
+    List<CommentDO> selectChildPageList(@Param("parentId") Long parentId,
+                                        @Param("offset") long offset,
+                                        @Param("pageSize") long pageSize);
 }
