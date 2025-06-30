@@ -16,6 +16,7 @@ import java.util.Objects;
  */
 @Slf4j
 public class FeignRequestInterceptor implements RequestInterceptor {
+
     @Override
     public void apply(RequestTemplate requestTemplate) {
         Long userId = LoginUserContextHolder.getUserId();
@@ -24,4 +25,5 @@ public class FeignRequestInterceptor implements RequestInterceptor {
             log.info("########## feign 请求设置请求头 userId: {}", userId);
         }
     }
+
 }

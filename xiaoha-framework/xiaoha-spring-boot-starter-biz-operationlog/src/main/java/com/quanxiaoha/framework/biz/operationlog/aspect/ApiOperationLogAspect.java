@@ -24,9 +24,6 @@ public class ApiOperationLogAspect {
 
     /**
      * 环绕
-     * @param joinPoint
-     * @return
-     * @throws Throwable
      */
     @Around("apiOperationLog()")
     public Object doAround(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -64,8 +61,6 @@ public class ApiOperationLogAspect {
 
     /**
      * 获取注解的描述信息
-     * @param joinPoint
-     * @return
      */
     private String getApiOperationLogDescription(ProceedingJoinPoint joinPoint) {
         // 1. 从 ProceedingJoinPoint 获取 MethodSignature
@@ -83,7 +78,6 @@ public class ApiOperationLogAspect {
 
     /**
      * 转 JSON 字符串
-     * @return
      */
     private Function<Object, String> toJsonStr() {
         return JsonUtils::toJsonString;

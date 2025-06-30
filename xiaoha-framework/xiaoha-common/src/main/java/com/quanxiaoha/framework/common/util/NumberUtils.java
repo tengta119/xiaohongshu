@@ -14,8 +14,6 @@ public class NumberUtils {
 
     /**
      * 数字转换字符串
-     * @param number
-     * @return
      */
     public static String formatNumberString(long number) {
 

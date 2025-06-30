@@ -82,7 +82,7 @@ public class JsonUtils {
      */
     public static <T> Set<T> parseSet(String jsonStr, Class<T> clazz) throws Exception {
 
-        return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<Set<T>>() {
+        return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<>() {
             @Override
             public Type getType() {
                 return OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, clazz);
