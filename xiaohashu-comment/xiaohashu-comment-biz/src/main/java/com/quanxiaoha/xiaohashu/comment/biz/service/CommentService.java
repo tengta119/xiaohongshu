@@ -27,4 +27,9 @@ public interface CommentService {
      * 二级评论分页查询
      */
     PageResponse<FindChildCommentItemRspVO> findChildCommentPageList(FindChildCommentPageListReqVO findChildCommentPageListReqVO);
+
+    /**
+     * 评论点赞
+     */
+    Response<?> likeComment(LikeCommentReqVO likeCommentReqVO);
 }
