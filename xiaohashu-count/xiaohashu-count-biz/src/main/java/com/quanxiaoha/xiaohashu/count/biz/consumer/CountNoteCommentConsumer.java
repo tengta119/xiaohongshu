@@ -5,12 +5,14 @@ import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.github.phantomthief.collection.BufferTrigger;
 import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.xiaohashu.count.biz.constant.MQConstants;
+import com.quanxiaoha.xiaohashu.count.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.count.biz.domain.mapper.NoteCountDOMapper;
 import com.quanxiaoha.xiaohashu.count.biz.model.dto.CountPublishCommentMqDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -30,6 +32,8 @@ public class CountNoteCommentConsumer implements RocketMQListener<String> {
 
     @Resource
     private NoteCountDOMapper  noteCountDOMapper;
+    @Resource
+    private RedisTemplate<String,Object> redisTemplate;
 
     private final BufferTrigger<String> bufferTrigger = BufferTrigger.<String>batchBlocking()
             .bufferSize(1000)
@@ -63,6 +67,13 @@ public class CountNoteCommentConsumer implements RocketMQListener<String> {
         for (Map.Entry<Long, List<CountPublishCommentMqDTO>> entry : groupMap.entrySet()) {
             Long noteId = entry.getKey();
             int count = entry.getValue().size();
+
+            String key = RedisKeyConstants.buildCountNoteKey(noteId);
+            Boolean hasKey = redisTemplate.hasKey(key);
+            if (hasKey) {
+                redisTemplate.opsForHash().increment(key, RedisKeyConstants.FIELD_COMMENT_TOTAL, count);
+            }
+
             noteCountDOMapper.insertOrUpdateCommentTotalByNoteId(count, noteId);
         }
     }
