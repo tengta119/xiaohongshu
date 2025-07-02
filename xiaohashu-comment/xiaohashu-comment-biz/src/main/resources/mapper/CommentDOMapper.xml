@@ -119,10 +119,36 @@
         limit #{limit}
     </select>
 
+    <select id="selectByReplyCommentId" resultMap="BaseResultMap" parameterType="long">
+        select
+        <include refid="Base_Column_List" />
+        from t_comment
+        where reply_comment_id = #{commentId}
+    </select>
+
+
+    <select id="selectChildComments" resultMap="BaseResultMap" parameterType="map">
+        select note_id, create_time, content_uuid
+        from t_comment
+        where parent_id = #{parentId} and level = 2
+    </select>
 
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete from t_comment
         where id = #{id,jdbcType=BIGINT}
+    </delete>
+
+    <delete id="deleteByParentId">
+        delete from t_comment
+        where parent_id = #{commentId}
+    </delete>
+
+    <delete id="deleteByIds" parameterType="map">
+        delete from t_comment
+        where id in
+        <foreach collection="commentIds" item="commentId" open="(" separator="," close=")">
+            #{commentId}
+        </foreach>
     </delete>
 
     <insert id="insert" parameterType="com.quanxiaoha.xiaohashu.comment.biz.domain.dataobject.CommentDO">

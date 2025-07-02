@@ -37,4 +37,14 @@ public interface CommentService {
      * 取消评论点赞
      */
     Response<?> unlikeComment(UnLikeCommentReqVO unLikeCommentReqVO);
+
+    /**
+     * 删除评论
+     */
+    Response<?> deleteComment(DeleteCommentReqVO deleteCommentReqVO);
+
+    /**
+     * 删除本地评论缓存
+     */
+    void deleteCommentLocalCache(Long commentId);
 }

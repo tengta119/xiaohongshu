@@ -38,4 +38,14 @@ public interface MQConstants {
      * Tag 标签：取消点赞
      */
     String TAG_UNLIKE = "UnLike";
+
+    /**
+     * Topic: 删除本地缓存 —— 评论详情
+     */
+    String TOPIC_DELETE_COMMENT_LOCAL_CACHE = "DeleteCommentDetailLocalCacheTopic";
+
+    /**
+     * Topic: 删除评论
+     */
+    String TOPIC_DELETE_COMMENT = "DeleteCommentTopic";
 }

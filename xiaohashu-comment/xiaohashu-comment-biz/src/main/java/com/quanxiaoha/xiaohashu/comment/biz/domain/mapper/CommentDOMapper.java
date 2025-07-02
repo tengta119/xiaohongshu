@@ -54,6 +54,9 @@ public interface CommentDOMapper {
                                    @Param("offset") long offset,
                                    @Param("pageSize") long pageSize);
 
+
+    List<CommentDO> selectChildComments(@Param("parentId") long parentId);
+
     /**
      * 批量查询二级评论
      */
@@ -86,4 +89,19 @@ public interface CommentDOMapper {
      */
     List<CommentDO> selectChildCommentsByParentIdAndLimit(@Param("parentId") Long parentId,
                                             @Param("limit") long limit);
+
+    /**
+     * 删除一级评论下，所有二级评论
+     */
+    int deleteByParentId(Long commentId);
+
+    /**
+     * 批量删除评论
+     */
+    int deleteByIds(@Param("commentIds") List<Long> commentIds);
+
+    /**
+     * 根据 reply_comment_id 查询
+     */
+    CommentDO selectByReplyCommentId(Long commentId);
 }

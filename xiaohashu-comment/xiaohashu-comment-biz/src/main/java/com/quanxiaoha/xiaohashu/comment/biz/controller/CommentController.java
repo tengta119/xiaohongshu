@@ -53,4 +53,10 @@ public class CommentController {
     public Response<?> unlikeComment(@Validated @RequestBody UnLikeCommentReqVO unLikeCommentReqVO) {
         return commentService.unlikeComment(unLikeCommentReqVO);
     }
+
+    @PostMapping("/delete")
+    @ApiOperationLog(description = "删除评论")
+    public Response<?> deleteComment(@Validated @RequestBody DeleteCommentReqVO deleteCommentReqVO) {
+        return commentService.deleteComment(deleteCommentReqVO);
+    }
 }
