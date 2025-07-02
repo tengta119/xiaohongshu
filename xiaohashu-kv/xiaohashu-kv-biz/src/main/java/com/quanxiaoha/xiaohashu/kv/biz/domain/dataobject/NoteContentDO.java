@@ -13,7 +13,7 @@ import java.util.UUID;
 /**
  * @author lbwxxc
  * @date 2025/5/31 19:50
- * @description: 实体类
+ * @description: 笔记内容
  */
 @Table("note_content")
 @Data
