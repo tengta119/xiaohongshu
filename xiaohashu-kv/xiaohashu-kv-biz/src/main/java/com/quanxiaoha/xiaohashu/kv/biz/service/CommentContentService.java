@@ -4,6 +4,7 @@ package com.quanxiaoha.xiaohashu.kv.biz.service;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.kv.dto.req.BatchAddCommentContentReqDTO;
 import com.quanxiaoha.xiaohashu.kv.dto.req.BatchFindCommentContentReqDTO;
+import com.quanxiaoha.xiaohashu.kv.dto.req.DeleteCommentContentReqDTO;
 
 /**
  * @author 1192299468@qq.com
@@ -22,4 +23,9 @@ public interface CommentContentService {
      * 批量查询评论内容
      */
     Response<?> batchFindCommentContent(BatchFindCommentContentReqDTO batchFindCommentContentReqDTO);
+
+    /**
+     * 删除评论内容
+     */
+    Response<?> deleteCommentContent(DeleteCommentContentReqDTO deleteCommentContentReqDTO);
 }

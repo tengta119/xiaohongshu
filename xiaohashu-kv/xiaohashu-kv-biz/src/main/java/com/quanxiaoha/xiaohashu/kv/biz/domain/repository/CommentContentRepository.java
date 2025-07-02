@@ -21,4 +21,9 @@ public interface CommentContentRepository extends CassandraRepository<CommentCon
             Long noteId, List<String> yearMonths, List<UUID> contentIds
     );
 
+    /**
+     * 删除评论正文
+     */
+    void deleteByPrimaryKeyNoteIdAndPrimaryKeyYearMonthAndPrimaryKeyContentId(Long noteId, String yearMonth, UUID contentId);
+
 }
