@@ -63,13 +63,14 @@ public class FindCommentItemRspVO {
     private Long childCommentTotal;
 
     /**
+     * 热度
+     */
+    private Double heat;
+
+    /**
      * 最早回复的评论
      */
     private FindCommentItemRspVO firstReplyComment;
 
-    /**
-     * 热度
-     */
-    private Double heat;
 
 }

@@ -7,7 +7,6 @@ import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.framework.common.util.NumberUtils;
 import com.quanxiaoha.xiaohashu.dto.RebuildUserDocumentReqDTO;
 import com.quanxiaoha.xiaohashu.search.biz.domain.mapper.SelectMapper;
-import com.quanxiaoha.xiaohashu.search.biz.index.NoteIndex;
 import com.quanxiaoha.xiaohashu.search.biz.index.UserIndex;
 import com.quanxiaoha.xiaohashu.search.biz.model.vo.SearchUserReqVO;
 import com.quanxiaoha.xiaohashu.search.biz.model.vo.SearchUserRspVO;
@@ -45,9 +44,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 搜索用户
-     *
-     * @param searchUserReqVO
-     * @return
      */
     @Override
     public PageResponse<SearchUserRspVO> searchUser(SearchUserReqVO searchUserReqVO) {
@@ -55,9 +51,6 @@ public class UserServiceImpl implements UserService {
         String keyword = searchUserReqVO.getKeyword();
         // 当前页码
         Integer pageNo = searchUserReqVO.getPageNo();
-
-        // 构建 SearchRequest，指定索引
-        SearchRequest searchRequest = new SearchRequest(UserIndex.NAME);
 
         // 构建查询内容
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
@@ -85,6 +78,8 @@ public class UserServiceImpl implements UserService {
                 .postTags("</strong>");
         sourceBuilder.highlighter(highlightBuilder);
 
+        // 构建 SearchRequest，指定索引
+        SearchRequest searchRequest = new SearchRequest(UserIndex.NAME);
         // 将构建的查询条件设置到 SearchRequest 中
         searchRequest.source(sourceBuilder);
 
@@ -149,9 +144,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 重建用户文档
-     *
-     * @param rebuildUserDocumentReqDTO
-     * @return
      */
     @Override
     public Response<Long> rebuildDocument(RebuildUserDocumentReqDTO rebuildUserDocumentReqDTO) {

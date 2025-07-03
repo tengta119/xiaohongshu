@@ -401,7 +401,6 @@ public class RelationServiceImpl implements RelationService {
 
     /**
      * 粉丝列表同步到 Redis（最多5000条）
-     * @param userId
      */
     private void syncFansList2Redis(Long userId) {
         // 查询粉丝列表（最多5000位用户）
@@ -425,9 +424,6 @@ public class RelationServiceImpl implements RelationService {
 
     /**
      * RPC: 调用用户服务、计数服务，并将 DTO 转换为 VO 粉丝列表
-     * @param userIds
-     * @param findFansUserRspVOS
-     * @return
      */
     private List<FindFansUserRspVO> rpcUserServiceAndCountServiceAndDTO2VO(List<Long> userIds, List<FindFansUserRspVO> findFansUserRspVOS) {
         List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.findByIds(userIds);
@@ -471,9 +467,6 @@ public class RelationServiceImpl implements RelationService {
 
     /**
      * RPC: 调用用户服务，并将 DTO 转换为 VO
-     * @param userIds
-     * @param findFollowingUserRspVOS
-     * @return
      */
     private List<FindFollowingUserRspVO> rpcUserServiceAndDTO2VO(List<Long> userIds, List<FindFollowingUserRspVO> findFollowingUserRspVOS) {
         // RPC: 批量查询用户信息
@@ -495,7 +488,6 @@ public class RelationServiceImpl implements RelationService {
 
     /**
      * 校验 Lua 脚本结果，根据状态码抛出对应的业务异常
-     * @param result
      */
     private static void checkLuaScriptResult(Long result) {
         LuaResultEnum luaResultEnum = LuaResultEnum.valueOf(result);
@@ -511,11 +503,7 @@ public class RelationServiceImpl implements RelationService {
     }
 
     /**
-     * 构建 Lua 脚本参数
-     *
-     * @param followingDOS
-     * @param expireSeconds
-     * @return
+     * 构建 Lua 脚本参数： 关注列表
      */
     private static Object[] buildLuaArgs(List<FollowingDO> followingDOS, long expireSeconds) {
         int argsLength = followingDOS.size() * 2 + 1; // 每个关注关系有 2 个参数（score 和 value），再加一个过期时间
@@ -534,9 +522,6 @@ public class RelationServiceImpl implements RelationService {
 
     /**
      * 构建 Lua 脚本参数：粉丝列表
-     * @param fansDOS
-     * @param expireSeconds
-     * @return
      */
     private static Object[] buildFansZSetLuaArgs(List<FansDO> fansDOS, long expireSeconds) {
         int argsLength = fansDOS.size() * 2 + 1; // 每个粉丝关系有 2 个参数（score 和 value），再加一个过期时间

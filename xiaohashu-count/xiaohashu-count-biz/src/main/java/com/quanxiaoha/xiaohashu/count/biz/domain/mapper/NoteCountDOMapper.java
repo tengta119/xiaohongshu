@@ -18,33 +18,21 @@ public interface NoteCountDOMapper {
 
     /**
      * 添加笔记计数记录或更新笔记点赞数
-     * @param count
-     * @param noteId
-     * @return
      */
     int insertOrUpdateLikeTotalByNoteId(@Param("count") Integer count, @Param("noteId") Long noteId);
 
     /**
      * 添加记录或更新笔记收藏数
-     * @param count
-     * @param noteId
-     * @return
      */
     int insertOrUpdateCollectTotalByNoteId(@Param("count") Integer count, @Param("noteId") Long noteId);
 
     /**
      * 添加记录或更新笔记收藏数
-     * @param count
-     * @param userId
-     * @return
      */
     int insertOrUpdateCollectionTotalByUserId(@Param("count") Integer count, @Param("userId") Long userId);
 
     /**
      * 添加记录或更新笔记评论数
-     * @param count
-     * @param noteId
-     * @return
      */
     int insertOrUpdateCommentTotalByNoteId(@Param("count") int count, @Param("noteId") Long noteId);
 }

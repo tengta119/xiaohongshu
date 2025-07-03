@@ -73,6 +73,7 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
                 .filter(countPublishCommentMqDTO -> Objects.equals(countPublishCommentMqDTO.getLevel(), CommentLevelEnum.TWO.getCode()))
                 .collect(Collectors.groupingBy(CountPublishCommentMqDTO::getParentId));
 
+        // 不存在二级评论则直接返回
         if (CollUtil.isEmpty(groupMap)) {
             return;
         }
@@ -90,7 +91,7 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
 
             // 更新一级评论的下级评论总数，进行累加操作
             commentDOMapper.updateChildCommentTotal(parentId, count);
-        };
+        }
 
 
         Set<Long> commentIds = groupMap.keySet();

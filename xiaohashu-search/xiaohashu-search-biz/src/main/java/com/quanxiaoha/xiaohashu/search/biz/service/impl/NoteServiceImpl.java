@@ -56,9 +56,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 搜索笔记
-     *
-     * @param searchNoteReqVO
-     * @return
      */
     @Override
     public PageResponse<SearchNoteRspVO> searchNote(SearchNoteReqVO searchNoteReqVO) {
@@ -316,9 +313,6 @@ public class NoteServiceImpl implements NoteService {
 
     /**
      * 重建笔记文档
-     *
-     * @param rebuildNoteDocumentReqDTO
-     * @return
      */
     @Override
     public Response<Long> rebuildDocument(RebuildNoteDocumentReqDTO rebuildNoteDocumentReqDTO) {

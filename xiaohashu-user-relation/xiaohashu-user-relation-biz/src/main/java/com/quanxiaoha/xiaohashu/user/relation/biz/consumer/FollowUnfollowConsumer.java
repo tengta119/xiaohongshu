@@ -76,7 +76,6 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
 
     /**
      * 关注
-     * @param bodyJsonStr
      */
     private void handleFollowTagMessage(String bodyJsonStr) {
 
@@ -137,12 +136,10 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
             send(countFollowUnfollowMqDTO);
         }
 
-
     }
 
     /**
      * 取关
-     * @param bodyJsonStr
      */
     private void handleUnfollowTagMessage(String bodyJsonStr) {
         UnfollowUserMqDTO unfollowUserMqDTO = JsonUtils.parseObject(bodyJsonStr, UnfollowUserMqDTO.class);

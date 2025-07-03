@@ -88,6 +88,7 @@ public class OneLevelCommentFirstReplyCommentIdUpdateConsumer implements RocketM
         List<String> keys = parentIds.stream().map(RedisKeyConstants::buildHaveFirstReplyCommentKey).toList();
         List<Object> values = redisTemplate.opsForValue().multiGet(keys);
 
+        // redis 缺少的评论
         List<Long> missingCommentIds = Lists.newArrayList();
         if (values != null) {
             for (int i = 0; i < values.size(); i++) {

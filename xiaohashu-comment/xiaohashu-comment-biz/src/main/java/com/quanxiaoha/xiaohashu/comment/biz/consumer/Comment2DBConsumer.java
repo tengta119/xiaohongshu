@@ -118,7 +118,8 @@ public class Comment2DBConsumer {
                 // DO 集合转 <评论 ID - 评论 DO> 字典, 以方便后续查找
                 Map<Long, CommentDO> commentIdAndCommentDOMap = Maps.newHashMap();
                 if (CollUtil.isNotEmpty(replyCommentDOS)) {
-                    commentIdAndCommentDOMap =  replyCommentDOS.stream().collect(Collectors.toMap(CommentDO::getId, commentDO -> commentDO));
+                    commentIdAndCommentDOMap =  replyCommentDOS.stream()
+                            .collect(Collectors.toMap(CommentDO::getId, commentDO -> commentDO));
                 }
 
                 // DTO 转 BO
@@ -262,6 +263,7 @@ public class Comment2DBConsumer {
                 args.add(commentBO.getId());
                 args.add(0);
             });
+            // 若关于这个笔记的评论缓存不存在（即 key 为不存在），则不会进行更新
             redisTemplate.execute(script, Collections.singletonList(key), args.toArray());
         });
     }

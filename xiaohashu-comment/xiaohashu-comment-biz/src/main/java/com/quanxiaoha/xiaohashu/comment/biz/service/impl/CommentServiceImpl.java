@@ -174,6 +174,7 @@ public class CommentServiceImpl implements CommentService {
             String commentZSetKey = RedisKeyConstants.buildCommentListKey(noteId);
             // 先判断 ZSET 是否存在
             boolean hasKey = redisTemplate.hasKey(commentZSetKey);
+            // 如果不存在进行异步缓存
             if (!hasKey) {
                 threadPoolTaskExecutor.execute(() -> syncHeatComments2Redis(commentZSetKey, noteId));
             }
@@ -219,6 +220,7 @@ public class CommentServiceImpl implements CommentService {
                     if (CollUtil.size(localCacheExpiredCommentIds) == 0) {
 
                         if (CollUtil.isNotEmpty(commentRspVOS)) {
+                            // 设置查询评论的点赞数和子评论数
                             setCommentCountData(commentRspVOS, localCacheExpiredCommentIds);
                         }
 
@@ -253,6 +255,7 @@ public class CommentServiceImpl implements CommentService {
 
                     if (CollUtil.isNotEmpty(expiredCommentIds)) {
                         List<CommentDO> commentDOS = commentDOMapper.selectByCommentIds(expiredCommentIds);
+                        // 分析 commentDOS 并整合到 commentRspVOS 中，最后缓存在 redis 中
                         getCommentDataAndSync2Redis(commentDOS, noteId, commentRspVOS);
                     }
 
@@ -271,6 +274,7 @@ public class CommentServiceImpl implements CommentService {
             // 缓存中没有，则查询数据库
             // 查询一级评论
             List<CommentDO> oneLevelCommentDOS = commentDOMapper.selectPageList(noteId, offset, pageSize);
+            // 分析 oneLevelCommentDOS 并整合到 commentRspVOS 中，最后缓存在 redis 中
             getCommentDataAndSync2Redis(oneLevelCommentDOS, noteId, commentRspVOS);
             commentRspVOS = commentRspVOS.stream()
                                 .sorted(Comparator.comparing(FindCommentItemRspVO::getHeat).reversed())
@@ -589,8 +593,6 @@ public class CommentServiceImpl implements CommentService {
             return PageResponse.success(null, pageNo, pageSize);
         }
 
-        // 分页返参
-        List<FindChildCommentItemRspVO> childCommentRspVOS = Lists.newArrayList();
 
         // 计算分页查询的偏移量 offset (需要 +1，因为最早回复的二级评论已经被展示了)
         long offset = PageResponse.getOffset(pageNo, pageSize) + 1;
@@ -608,6 +610,9 @@ public class CommentServiceImpl implements CommentService {
                 syncChildComments2Redis(parentCommentId, childCommentZSetKey);
             });
         }
+
+        // 分页返参
+        List<FindChildCommentItemRspVO> childCommentRspVOS = Lists.newArrayList();
 
         // 若子评论 ZSET 缓存存在, 并且查询的是前 10 页的子评论
         if (hasKey && offset < 6*10) {
@@ -995,9 +1000,8 @@ public class CommentServiceImpl implements CommentService {
 
                 // 目标评论已经被点赞
                 if (count > 0) {
-                    threadPoolTaskExecutor.execute(() -> {
-                        batchAddCommentLike2BloomAndExpire(userId, expireSeconds, bloomUserCommentLikeListKey);
-                    });
+                    threadPoolTaskExecutor.execute(() ->
+                            batchAddCommentLike2BloomAndExpire(userId, expireSeconds, bloomUserCommentLikeListKey));
                     throw new BizException(ResponseCodeEnum.COMMENT_ALREADY_LIKED);
                 }
 
@@ -1083,7 +1087,9 @@ public class CommentServiceImpl implements CommentService {
                 int count = commentLikeDOMapper.selectCountByUserIdAndCommentId(userId, commentId);
 
                 // 未点赞，无法取消点赞操作，抛出业务异常
-                if (count == 0) throw new BizException(ResponseCodeEnum.COMMENT_NOT_LIKED);
+                if (count == 0) {
+                    throw new BizException(ResponseCodeEnum.COMMENT_NOT_LIKED);
+                }
             }
             // 布隆过滤器校验目标评论未被点赞（判断绝对正确）
             case COMMENT_NOT_LIKED -> throw new BizException(ResponseCodeEnum.COMMENT_NOT_LIKED);

@@ -103,8 +103,6 @@ public class NoteServiceImpl implements NoteService {
         }
 
         String imgUris = null;
-        // 笔记内容是否为空，默认值为 true，即空
-        boolean isContentEmpty = true;
         String videoUri = null;
         switch (noteTypeEnum) {
             case IMAGE_TEXT:
@@ -120,12 +118,15 @@ public class NoteServiceImpl implements NoteService {
                 break;
         }
 
+        // 笔记内容是否为空，默认为 true，即为空
+        boolean isContentEmpty = true;
         // 笔记内容 UUID
         String contentUuid = null;
         // 笔记内容
         String content = publishNoteReqVO.getContent();
         if (StringUtils.isNotBlank(content)) {
             isContentEmpty = false;
+            // 使用 UUID 作为分区键可以确保数据在集群中的节点之间均匀分布，避免数据倾斜现象的发生
             contentUuid = UUID.randomUUID().toString();
             boolean saveNoteContent = keyValueRpcService.saveNoteContent(contentUuid, content);
             if (!saveNoteContent) {
@@ -186,7 +187,7 @@ public class NoteServiceImpl implements NoteService {
         // 通过冒号连接, 可让 MQ 发送给主题 Topic 时，携带上标签 Tag
         String destination = MQConstants.TOPIC_NOTE_OPERATE + ":" + MQConstants.TAG_NOTE_PUBLISH;
 
-        // 异步发送 MQ 消息，提升接口响应速度
+        // 异步发送 MQ 消息，提升接口响应速度，计数服务 count ： CountNotePublishConsumer
         rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -547,7 +548,7 @@ public class NoteServiceImpl implements NoteService {
             throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
         }
 
-        // 用户点赞列表 ZSet Key
+        // 查询布隆过滤器的结果
         String userNoteLikeZSetKey = RedisKeyConstants.buildUserNoteLikeZSetKey(userId);
         switch (noteLikeLuaResultEnum) {
             case NOT_EXIST -> {
