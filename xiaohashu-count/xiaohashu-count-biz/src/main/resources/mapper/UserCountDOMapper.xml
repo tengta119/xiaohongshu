@@ -10,15 +10,25 @@
         <result column="like_total" jdbcType="BIGINT" property="likeTotal" />
         <result column="collect_total" jdbcType="BIGINT" property="collectTotal" />
     </resultMap>
+
     <sql id="Base_Column_List">
         id, user_id, fans_total, following_total, note_total, like_total, collect_total
     </sql>
+
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List" />
         from t_user_count
         where id = #{id,jdbcType=BIGINT}
     </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap" parameterType="map">
+        select
+        <include refid="Base_Column_List" />
+        from t_user_count
+        where user_id = #{userId}
+    </select>
+
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete from t_user_count
         where id = #{id,jdbcType=BIGINT}

@@ -39,6 +39,11 @@
             <artifactId>xiaoha-spring-boot-starter-jackson</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.quanxiaoha</groupId>
+            <artifactId>xiaohashu-count-api</artifactId>
+        </dependency>
+
         <!-- 快手 Buffer Trigger -->
         <dependency>
             <groupId>com.github.phantomthief</groupId>

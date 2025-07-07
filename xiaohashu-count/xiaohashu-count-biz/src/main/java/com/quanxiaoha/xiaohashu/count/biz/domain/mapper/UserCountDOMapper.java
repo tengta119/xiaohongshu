@@ -4,6 +4,7 @@ import com.quanxiaoha.xiaohashu.count.biz.domain.dataobject.UserCountDO;
 import org.apache.ibatis.annotations.Param;
 
 public interface UserCountDOMapper {
+
     int deleteByPrimaryKey(Long id);
 
     int insert(UserCountDO record);
@@ -20,25 +21,21 @@ public interface UserCountDOMapper {
 
     /**
      * 添加或更新关注总数
-     * @param count
-     * @param userId
-     * @return
      */
     int insertOrUpdateFollowingTotalByUserId(@Param("count") Integer count, @Param("userId") Long userId);
 
     /**
      * 添加记录或更新笔记点赞数
-     * @param count
-     * @param userId
-     * @return
      */
     int insertOrUpdateLikeTotalByUserId(@Param("count") Integer count, @Param("userId") Long userId);
 
     /**
      * 添加记录或更新笔记发布数
-     * @param count
-     * @param userId
-     * @return
      */
     int insertOrUpdateNoteTotalByUserId(@Param("count") Long count, @Param("userId") Long userId);
+
+    /**
+     * 根据用户 ID 查询
+     */
+    UserCountDO selectByUserId(Long userId);
 }
