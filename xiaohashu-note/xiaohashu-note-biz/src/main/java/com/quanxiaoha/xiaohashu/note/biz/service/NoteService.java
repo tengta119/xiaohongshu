@@ -62,4 +62,9 @@ public interface NoteService {
      * 取消收藏笔记
      */
     Response<?> unCollectNote(UnCollectNoteReqVO unCollectNoteReqVO);
+
+    /**
+     * 获取是否点赞、收藏数据
+     */
+    Response<FindNoteIsLikedAndCollectedRspVO> isLikedAndCollectedData(FindNoteIsLikedAndCollectedReqVO findNoteIsLikedAndCollectedReqVO);
 }

@@ -38,6 +38,19 @@ public class RedisKeyConstants {
      */
     public static final String R_BITMAP_USER_NOTE_LIKE_LIST_KEY = "rbitmap:note:likes:";
 
+
+    /**
+     * Roaring Bitmap：用户笔记收藏 前缀
+     */
+    public static final String R_BITMAP_USER_NOTE_COLLECT_LIST_KEY = "rbitmap:note:collects:";
+
+    /**
+     * 构建完整的 Roaring Bitmap：用户笔记收藏 KEY
+     */
+    public static String buildRBitmapUserNoteCollectListKey(Long userId) {
+        return R_BITMAP_USER_NOTE_COLLECT_LIST_KEY + userId;
+    }
+
     /**
      * 构建完整的 Roaring Bitmap：用户笔记点赞 KEY
      */
