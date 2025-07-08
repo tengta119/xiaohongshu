@@ -3,7 +3,9 @@ package com.quanxiaoha.framework.common.util;
 
 import com.quanxiaoha.framework.common.constant.DateConstants;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -25,8 +27,6 @@ public class DateUtils {
 
     /**
      * LocalDateTime 转 String 字符串
-     * @param time
-     * @return
      */
     public static String localDateTime2String(LocalDateTime time) {
         return time.format(DateConstants.DATE_FORMAT_Y_M_D_H_M_S);
@@ -34,8 +34,6 @@ public class DateUtils {
 
     /**
      * LocalDateTime 转友好的相对时间字符串
-     * @param dateTime
-     * @return
      */
     public static String formatRelativeTime(LocalDateTime dateTime) {
         // 当前时间
@@ -61,5 +59,21 @@ public class DateUtils {
         } else {  // 如果是去年或更早
             return dateTime.format(DateConstants.DATE_FORMAT_Y_M_D);
         }
+    }
+
+    /**
+     * 计算年龄
+     * @param birthDate 出生日期（LocalDate）
+     * @return 计算得到的年龄（以年为单位）
+     */
+    public static int calculateAge(LocalDate birthDate) {
+        // 获取当前日期
+        LocalDate currentDate = LocalDate.now();
+
+        // 计算出生日期到当前日期的 Period 对象
+        Period period = Period.between(birthDate, currentDate);
+
+        // 返回完整的年份（即年龄）
+        return period.getYears();
     }
 }

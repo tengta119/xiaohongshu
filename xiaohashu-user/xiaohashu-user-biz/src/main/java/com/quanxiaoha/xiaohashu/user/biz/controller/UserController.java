@@ -2,6 +2,8 @@ package com.quanxiaoha.xiaohashu.user.biz.controller;
 
 import com.quanxiaoha.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.xiaohashu.user.biz.model.vo.FindUserProfileReqVO;
+import com.quanxiaoha.xiaohashu.user.biz.model.vo.FindUserProfileRspVO;
 import com.quanxiaoha.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.quanxiaoha.xiaohashu.user.biz.service.UserService;
 import com.quanxiaoha.xiaohashu.user.dto.req.*;
@@ -31,6 +33,14 @@ public class UserController {
     public Response<?> updateUserInfo(@Validated UpdateUserInfoReqVO updateUserInfoReqVO) {
         userService.updateUserInfo(updateUserInfoReqVO);
         return Response.success();
+    }
+
+    /**
+     * 获取用户主页信息
+     */
+    @PostMapping(value = "/profile")
+    public Response<FindUserProfileRspVO> findUserProfile(@Validated FindUserProfileReqVO findUserProfileReqVO) {
+        return userService.findUserProfile(findUserProfileReqVO);
     }
 
     // ===================================== 对其他服务提供的接口 =====================================

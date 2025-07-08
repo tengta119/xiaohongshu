@@ -1,6 +1,8 @@
 package com.quanxiaoha.xiaohashu.user.biz.service;
 
 import com.quanxiaoha.framework.common.response.Response;
+import com.quanxiaoha.xiaohashu.user.biz.model.vo.FindUserProfileReqVO;
+import com.quanxiaoha.xiaohashu.user.biz.model.vo.FindUserProfileRspVO;
 import com.quanxiaoha.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.quanxiaoha.xiaohashu.user.dto.req.*;
 import com.quanxiaoha.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
@@ -40,4 +42,11 @@ public interface UserService {
      * 批量根据用户 ID 查询用户信息
      */
     Response<List<FindUserByIdRspDTO>> findByIds(FindUsersByIdsReqDTO findUsersByIdsReqDTO);
+
+    /**
+     * 获取用户主页信息
+     *
+     * @return
+     */
+    Response<FindUserProfileRspVO> findUserProfile(FindUserProfileReqVO findUserProfileReqVO);
 }
