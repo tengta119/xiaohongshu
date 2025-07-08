@@ -5,6 +5,7 @@ import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.user.biz.enums.ResponseCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -33,29 +34,37 @@ public class GlobalExceptionHandler {
      * 捕获参数校验异常
      * @return
      */
-    @ExceptionHandler({ MethodArgumentNotValidException.class })
+    @ExceptionHandler({ MethodArgumentNotValidException.class, BindException.class })
     @ResponseBody
-    public Response<Object> handleMethodArgumentNotValidException(HttpServletRequest request, MethodArgumentNotValidException e) {
+    public Response<Object> handleControllerException(HttpServletRequest request, Throwable e) {
         // 参数错误异常码
         String errorCode = ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode();
 
         // 获取 BindingResult
-        BindingResult bindingResult = e.getBindingResult();
+        BindingResult bindingResult = null;
 
+        // 检查异常类型，并强制类型转换，获取绑定结果
+        if (e instanceof MethodArgumentNotValidException validException) {
+            bindingResult = validException.getBindingResult();
+        } else if (e instanceof BindException  bindException) {
+            bindingResult = bindException.getBindingResult();
+        }
         StringBuilder sb = new StringBuilder();
 
         // 获取校验不通过的字段，并组合错误信息，格式为： email 邮箱格式不正确, 当前值: '123124qq.com';
-        Optional.ofNullable(bindingResult.getFieldErrors()).ifPresent(errors -> {
-            errors.forEach(error ->
-                    sb.append(error.getField())
-                            .append(" ")
-                            .append(error.getDefaultMessage())
-                            .append(", 当前值: '")
-                            .append(error.getRejectedValue())
-                            .append("'; ")
+        if (bindingResult != null) {
+            Optional.of(bindingResult.getFieldErrors()).ifPresent(errors -> {
+                errors.forEach(error ->
+                        sb.append(error.getField())
+                                .append(" ")
+                                .append(error.getDefaultMessage())
+                                .append(", 当前值: '")
+                                .append(error.getRejectedValue())
+                                .append("'; ")
 
-            );
-        });
+                );
+            });
+        }
 
         // 错误信息
         String errorMessage = sb.toString();
@@ -67,7 +76,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 捕获 guava 参数校验异常
-     * @return
      */
     @ExceptionHandler({ IllegalArgumentException.class })
     @ResponseBody
@@ -85,9 +93,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 其他类型异常
-     * @param request
-     * @param e
-     * @return
      */
     @ExceptionHandler({ Exception.class })
     @ResponseBody

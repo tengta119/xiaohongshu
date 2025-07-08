@@ -451,7 +451,7 @@ public class UserServiceImpl implements UserService {
             userId = LoginUserContextHolder.getUserId();
         }
 
-        // 1. 优先查本地缓存
+        // 1. 优先查本地缓存，如果是账号本人则不查询本地缓存
         if (!Objects.equals(userId, LoginUserContextHolder.getUserId())) {
             FindUserProfileRspVO userProfileLocalCache = PROFILE_LOCAL_CACHE.getIfPresent(userId);
             if (Objects.nonNull(userProfileLocalCache)) {
@@ -467,6 +467,8 @@ public class UserServiceImpl implements UserService {
             FindUserProfileRspVO findUserProfileRspVO = JsonUtils.parseObject(userProfileJson, FindUserProfileRspVO.class);
             // 异步将缓存更新到本地
             syncUserProfile2LocalCache(userId, findUserProfileRspVO);
+            // 如果是博主本人查看，保证计数的实时性
+            authorGetActualCountData(userId, findUserProfileRspVO);
             return Response.success(findUserProfileRspVO);
         }
 
@@ -485,25 +487,14 @@ public class UserServiceImpl implements UserService {
                 .sex(userDO.getSex())
                 .introduction(userDO.getIntroduction())
                 .build();
+
         // 计算年龄
         LocalDate birthday = userDO.getBirthday();
         findUserProfileRspVO.setAge(Objects.isNull(birthday) ? 0 : DateUtils.calculateAge(birthday));
         // 4. Feign 调用计数服务
-        FindUserCountsByIdRspDTO findUserCountsByIdRspDTO = countRpcService.findUserCountById(userId);
-        if (Objects.nonNull(findUserCountsByIdRspDTO)) {
-            Long fansTotal = findUserCountsByIdRspDTO.getFansTotal();
-            Long followingTotal = findUserCountsByIdRspDTO.getFollowingTotal();
-            Long likeTotal = findUserCountsByIdRspDTO.getLikeTotal();
-            Long collectTotal = findUserCountsByIdRspDTO.getCollectTotal();
-            Long noteTotal = findUserCountsByIdRspDTO.getNoteTotal();
-
-            findUserProfileRspVO.setFansTotal(NumberUtils.formatNumberString(fansTotal));
-            findUserProfileRspVO.setFollowingTotal(NumberUtils.formatNumberString(followingTotal));
-            findUserProfileRspVO.setLikeAndCollectTotal(NumberUtils.formatNumberString(likeTotal + collectTotal));
-            findUserProfileRspVO.setNoteTotal(NumberUtils.formatNumberString(noteTotal));
-            findUserProfileRspVO.setLikeTotal(NumberUtils.formatNumberString(likeTotal));
-            findUserProfileRspVO.setCollectTotal(NumberUtils.formatNumberString(collectTotal));
-        }
+        // RPC: Feign 调用计数服务
+        // 关注数、粉丝数、收藏与点赞总数；获得的点赞数、收藏数
+        rpcCountServiceAndSetData(userId, findUserProfileRspVO);
 
         // 异步同步到 Redis 中
         syncUserProfile2Redis(userProfileKey, findUserProfileRspVO);
@@ -529,5 +520,36 @@ public class UserServiceImpl implements UserService {
             // 将 VO 转为 Json 字符串写入到 Redis 中
             redisTemplate.opsForValue().set(userProfileRedisKey, JsonUtils.toJsonString(findUserProfileRspVO), expireTime, TimeUnit.SECONDS);
         });
+    }
+
+    /**
+     * 作者本人获取真实的计数数据（保证实时性）
+     */
+    private void authorGetActualCountData(Long userId, FindUserProfileRspVO findUserProfileRspVO) {
+        if (Objects.equals(userId, LoginUserContextHolder.getUserId())) { // 如果是博主本人
+            rpcCountServiceAndSetData(userId, findUserProfileRspVO);
+        }
+    }
+
+    /**
+     * Feign 调用计数服务, 并设置计数数据
+     */
+    private void rpcCountServiceAndSetData(Long userId, FindUserProfileRspVO findUserProfileRspVO) {
+        FindUserCountsByIdRspDTO findUserCountsByIdRspDTO = countRpcService.findUserCountById(userId);
+
+        if (Objects.nonNull(findUserCountsByIdRspDTO)) {
+            Long fansTotal = findUserCountsByIdRspDTO.getFansTotal();
+            Long followingTotal = findUserCountsByIdRspDTO.getFollowingTotal();
+            Long likeTotal = findUserCountsByIdRspDTO.getLikeTotal();
+            Long collectTotal = findUserCountsByIdRspDTO.getCollectTotal();
+            Long noteTotal = findUserCountsByIdRspDTO.getNoteTotal();
+
+            findUserProfileRspVO.setFansTotal(NumberUtils.formatNumberString(fansTotal));
+            findUserProfileRspVO.setFollowingTotal(NumberUtils.formatNumberString(followingTotal));
+            findUserProfileRspVO.setLikeAndCollectTotal(NumberUtils.formatNumberString(likeTotal + collectTotal));
+            findUserProfileRspVO.setNoteTotal(NumberUtils.formatNumberString(noteTotal));
+            findUserProfileRspVO.setLikeTotal(NumberUtils.formatNumberString(likeTotal));
+            findUserProfileRspVO.setCollectTotal(NumberUtils.formatNumberString(collectTotal));
+        }
     }
 }
