@@ -45,8 +45,6 @@ public interface UserService {
 
     /**
      * 获取用户主页信息
-     *
-     * @return
      */
     Response<FindUserProfileRspVO> findUserProfile(FindUserProfileReqVO findUserProfileReqVO);
 }

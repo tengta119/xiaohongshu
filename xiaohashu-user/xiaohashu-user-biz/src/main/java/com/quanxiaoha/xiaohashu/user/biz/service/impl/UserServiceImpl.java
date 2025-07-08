@@ -16,8 +16,7 @@ import com.quanxiaoha.framework.common.util.JsonUtils;
 import com.quanxiaoha.framework.common.util.NumberUtils;
 import com.quanxiaoha.framework.common.util.ParamUtils;
 import com.quanxiaoha.xiaohashu.count.dto.FindUserCountsByIdRspDTO;
-import com.quanxiaoha.xiaohashu.distributed.id.generator.api.DistributedIdGeneratorFeignApi;
-import com.quanxiaoha.xiaohashu.oss.api.FileFeignApi;
+import com.quanxiaoha.xiaohashu.user.biz.constant.MQConstants;
 import com.quanxiaoha.xiaohashu.user.biz.constant.RedisKeyConstants;
 import com.quanxiaoha.xiaohashu.user.biz.constant.RoleConstants;
 import com.quanxiaoha.xiaohashu.user.biz.domain.dataobject.RoleDO;
@@ -42,16 +41,18 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -82,6 +83,9 @@ public class UserServiceImpl implements UserService {
     Executor threadPoolTaskExecutor;
     @Resource
     CountRpcService countRpcService;
+    @Resource
+    RocketMQTemplate rocketMQTemplate;
+
     /**
      * 用户主页信息本地缓存
      */
@@ -99,12 +103,18 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 更新用户信息
-     *
-     * @param updateUserInfoReqVO
-     * @return
      */
     @Override
     public Response<?> updateUserInfo(UpdateUserInfoReqVO updateUserInfoReqVO) {
+
+        // 被更新的用户 ID
+        Long userId = updateUserInfoReqVO.getUserId();
+        // 当前登录的用户 ID
+        Long loginUserId = LoginUserContextHolder.getUserId();
+        if (userId.equals(loginUserId)) {
+            throw new BizException(ResponseCodeEnum.CANT_UPDATE_OTHER_USER_PROFILE);
+        }
+
         UserDO userDO = new UserDO();
         // 设置当前需要更新的用户 ID
         userDO.setId(LoginUserContextHolder.getUserId());
@@ -178,11 +188,45 @@ public class UserServiceImpl implements UserService {
         }
 
         if (needUpdate) {
+            // 删除 Redis 中的用户缓存
+            deleteUserRedisCache(userId);
+
             // 更新用户信息
             userDO.setUpdateTime(LocalDateTime.now());
             userDOMapper.updateByPrimaryKeySelective(userDO);
         }
         return Response.success();
+    }
+
+    /**
+     * 删除 Redis 中的用户缓存
+     */
+    private void deleteUserRedisCache(Long userId) {
+        String userInfoKey = RedisKeyConstants.buildUserInfoKey(userId);
+        String userProfileKey = RedisKeyConstants.buildUserProfileKey(userId);
+        redisTemplate.delete(List.of(userInfoKey, userProfileKey));
+    }
+
+    /**
+     * 异步发送延时消息
+     */
+    private void sendDelayDeleteUserRedisCacheMQ(Long userId) {
+        Message<String> message = MessageBuilder.withPayload(String.valueOf(userId)).build();
+        rocketMQTemplate.asyncSend(MQConstants.TOPIC_DELAY_DELETE_USER_REDIS_CACHE, message,
+                new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                        log.info("## 延时删除 Redis 用户缓存消息发送成功...");
+                    }
+
+                    @Override
+                    public void onException(Throwable e) {
+                        log.error("## 延时删除 Redis 用户缓存消息发送失败...", e);
+                    }
+                },
+                3000, // 超时时间
+                1 // 延迟级别，1 表示延时 1s
+        );
     }
 
     @Override
@@ -408,10 +452,12 @@ public class UserServiceImpl implements UserService {
         }
 
         // 1. 优先查本地缓存
-        FindUserProfileRspVO userProfileLocalCache = PROFILE_LOCAL_CACHE.getIfPresent(userId);
-        if (Objects.nonNull(userProfileLocalCache)) {
-            log.info("## 用户主页信息命中本地缓存: {}", JsonUtils.toJsonString(userProfileLocalCache));
-            return Response.success(userProfileLocalCache);
+        if (!Objects.equals(userId, LoginUserContextHolder.getUserId())) {
+            FindUserProfileRspVO userProfileLocalCache = PROFILE_LOCAL_CACHE.getIfPresent(userId);
+            if (Objects.nonNull(userProfileLocalCache)) {
+                log.info("## 用户主页信息命中本地缓存: {}", JsonUtils.toJsonString(userProfileLocalCache));
+                return Response.success(userProfileLocalCache);
+            }
         }
 
         // 2. 优先查询缓存
