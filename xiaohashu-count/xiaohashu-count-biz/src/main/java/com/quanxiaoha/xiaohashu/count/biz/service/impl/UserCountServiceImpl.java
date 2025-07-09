@@ -1,7 +1,6 @@
 package com.quanxiaoha.xiaohashu.count.biz.service.impl;
 
 
-import com.alibaba.ttl.threadpool.agent.internal.javassist.bytecode.analysis.Executor;
 import com.google.common.collect.Maps;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.xiaohashu.count.biz.constant.RedisKeyConstants;
@@ -12,7 +11,6 @@ import com.quanxiaoha.xiaohashu.count.dto.FindUserCountsByIdReqDTO;
 import com.quanxiaoha.xiaohashu.count.dto.FindUserCountsByIdRspDTO;
 import jakarta.annotation.Resource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;

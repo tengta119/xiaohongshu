@@ -13,6 +13,8 @@ import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
 import com.quanxiaoha.framework.common.util.DateUtils;
 import com.quanxiaoha.framework.common.util.JsonUtils;
+import com.quanxiaoha.framework.common.util.NumberUtils;
+import com.quanxiaoha.xiaohashu.count.dto.FindNoteCountsByIdRspDTO;
 import com.quanxiaoha.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import com.quanxiaoha.xiaohashu.note.biz.constant.MQConstants;
 import com.quanxiaoha.xiaohashu.note.biz.constant.RedisKeyConstants;
@@ -28,6 +30,7 @@ import com.quanxiaoha.xiaohashu.note.biz.model.dto.CollectUnCollectNoteMqDTO;
 import com.quanxiaoha.xiaohashu.note.biz.model.dto.LikeUnlikeNoteMqDTO;
 import com.quanxiaoha.xiaohashu.note.biz.model.dto.NoteOperateMqDTO;
 import com.quanxiaoha.xiaohashu.note.biz.model.vo.*;
+import com.quanxiaoha.xiaohashu.note.biz.rpc.CountRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.KeyValueRpcService;
 import com.quanxiaoha.xiaohashu.note.biz.rpc.UserRpcService;
@@ -52,6 +55,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author lbwxxc
@@ -82,6 +86,8 @@ public class NoteServiceImpl implements NoteService {
     private NoteLikeDOMapper noteLikeDOMapper;
     @Resource
     private NoteCollectionDOMapper noteCollectionDOMapper;
+    @Resource
+    private CountRpcService countRpcService;
 
     private final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
             .initialCapacity(50)
@@ -1283,5 +1289,70 @@ public class NoteServiceImpl implements NoteService {
         } catch (Exception e) {
             log.error("## 异步初始化【笔记点赞】Roaring Bitmap 异常: ", e);
         }
+    }
+
+    @Override
+    public Response<FindPublishedNoteListRspVO> findPublishedNoteList(FindPublishedNoteListReqVO findPublishedNoteListReqVO) {
+        Long userId = findPublishedNoteListReqVO.getUserId();
+        Long cursor = findPublishedNoteListReqVO.getCursor();
+        // TODO: 优先查询缓存
+
+        // 缓存无，则查询数据库
+        List<NoteDO> noteDOS = noteDOMapper.selectPublishedNoteListByUserIdAndCursor(userId, cursor);
+
+        // 反参 VO
+        FindPublishedNoteListRspVO findPublishedNoteListRspVO = null;
+        if (CollUtil.isNotEmpty(noteDOS)) {
+            List<NoteItemRspVO> noteVOS = noteDOS.stream()
+                    .map(noteDO -> {
+                        // 获取封面图片
+                        String cover = StringUtils.isNotBlank(noteDO.getImgUris()) ?
+                                StringUtils.split(noteDO.getImgUris(), ",")[0] : null;
+
+                        NoteItemRspVO noteItemRspVO = NoteItemRspVO.builder()
+                                .noteId(noteDO.getId())
+                                .type(noteDO.getType())
+                                .creatorId(noteDO.getCreatorId())
+                                .cover(cover)
+                                .videoUri(noteDO.getVideoUri())
+                                .title(noteDO.getTitle())
+                                .build();
+                        return noteItemRspVO;
+                    }).toList();
+
+            Optional<Long> creatorIdOptional = noteDOS.stream().map(NoteDO::getCreatorId).findAny();
+            // Feign 调用用户服务，获取用户头像、昵称
+            FindUserByIdRspDTO userByIdRspDTO = userRpcService.findById(creatorIdOptional.get());
+            if (Objects.nonNull(userByIdRspDTO)) {
+                noteVOS.forEach(noteItemRspVO -> {
+                    noteItemRspVO.setAvatar(userByIdRspDTO.getAvatar());
+                    noteItemRspVO.setNickname(userByIdRspDTO.getNickName());
+                });
+            }
+
+            // Feign 调用计数服务，批量获取笔记点赞数
+            List<Long> noteIds = noteDOS.stream().map(NoteDO::getId).toList();
+            List<FindNoteCountsByIdRspDTO> findNoteCountsByIdRspDTOS = countRpcService.findByNoteIds(noteIds);
+
+            if (CollUtil.isNotEmpty(findNoteCountsByIdRspDTOS)) {
+                Map<Long, FindNoteCountsByIdRspDTO> noteAndDTOMap = findNoteCountsByIdRspDTOS.stream()
+                        .collect(Collectors.toMap(FindNoteCountsByIdRspDTO::getNoteId, findNoteCountsByIdRspDTO -> findNoteCountsByIdRspDTO));
+
+                noteVOS.forEach(noteItemRspVO -> {
+                    Long currNoteId = noteItemRspVO.getNoteId();
+                    FindNoteCountsByIdRspDTO findNoteCountsByIdRspDTO = noteAndDTOMap.get(currNoteId);
+                    noteItemRspVO.setLikeTotal((Objects.nonNull(findNoteCountsByIdRspDTO) && Objects.nonNull(findNoteCountsByIdRspDTO.getLikeTotal())) ?
+                            NumberUtils.formatNumberString(findNoteCountsByIdRspDTO.getLikeTotal()) : "0");
+                });
+            }
+
+            // 过滤出最早发布的笔记 ID，充当下一页的游标
+            Optional<Long> earliestNoteId  = noteDOS.stream().map(NoteDO::getId).min(Long::compareTo);
+            findPublishedNoteListRspVO = FindPublishedNoteListRspVO.builder()
+                    .notes(noteVOS)
+                    .nextCursor(earliestNoteId .orElse(null))
+                    .build();
+        }
+        return Response.success(findPublishedNoteListRspVO);
     }
 }
