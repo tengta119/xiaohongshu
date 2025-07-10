@@ -8,6 +8,7 @@ import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.quanxiaoha.framework.biz.context.holder.LoginUserContextHolder;
 import com.quanxiaoha.framework.common.exception.BizException;
 import com.quanxiaoha.framework.common.response.Response;
@@ -43,10 +44,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -1363,6 +1361,13 @@ public class NoteServiceImpl implements NoteService {
                     noteItemRspVOS = noteItemRspVOS.stream().sorted(Comparator.comparing(NoteItemRspVO::getNoteId).reversed()).toList();
                     // 过滤出最早发布的笔记 ID，充当下一页的游标
                     Optional<Long> earliestNoteId = noteItemRspVOS.stream().map(NoteItemRspVO::getNoteId).min(Long::compareTo);
+
+                    // 如果是博主本人，需要调用计数服务，获取最新的点赞数据
+                    getAndSetLatestLikeTotalIfAuthor(userId, noteItemRspVOS);
+
+                    // 批量获取笔记的点赞状态
+                    batchGetAndSetNoteIsLiked(noteItemRspVOS);
+
                     findPublishedNoteListRspVO = FindPublishedNoteListRspVO.builder()
                             .notes(noteItemRspVOS)
                             .nextCursor(earliestNoteId .orElse(null))
@@ -1391,6 +1396,7 @@ public class NoteServiceImpl implements NoteService {
                                 .cover(cover)
                                 .videoUri(noteDO.getVideoUri())
                                 .title(noteDO.getTitle())
+                                .isLiked(false) // 默认为未点赞状态
                                 .build();
                         return noteItemRspVO;
                     }).toList();
@@ -1403,23 +1409,18 @@ public class NoteServiceImpl implements NoteService {
                     noteItemRspVO.setAvatar(userByIdRspDTO.getAvatar());
                     noteItemRspVO.setNickname(userByIdRspDTO.getNickName());
                 });
+
             }
 
             // Feign 调用计数服务，批量获取笔记点赞数
             List<Long> noteIds = noteDOS.stream().map(NoteDO::getId).toList();
             List<FindNoteCountsByIdRspDTO> findNoteCountsByIdRspDTOS = countRpcService.findByNoteIds(noteIds);
 
-            if (CollUtil.isNotEmpty(findNoteCountsByIdRspDTOS)) {
-                Map<Long, FindNoteCountsByIdRspDTO> noteAndDTOMap = findNoteCountsByIdRspDTOS.stream()
-                        .collect(Collectors.toMap(FindNoteCountsByIdRspDTO::getNoteId, findNoteCountsByIdRspDTO -> findNoteCountsByIdRspDTO));
 
-                noteVOS.forEach(noteItemRspVO -> {
-                    Long currNoteId = noteItemRspVO.getNoteId();
-                    FindNoteCountsByIdRspDTO findNoteCountsByIdRspDTO = noteAndDTOMap.get(currNoteId);
-                    noteItemRspVO.setLikeTotal((Objects.nonNull(findNoteCountsByIdRspDTO) && Objects.nonNull(findNoteCountsByIdRspDTO.getLikeTotal())) ?
-                            NumberUtils.formatNumberString(findNoteCountsByIdRspDTO.getLikeTotal()) : "0");
-                });
-            }
+            // 设置笔记的点赞量
+            setVOListLikeTotal(noteVOS, findNoteCountsByIdRspDTOS);
+            // 批量获取笔记的点赞状态
+            batchGetAndSetNoteIsLiked(noteVOS);
 
             // 过滤出最早发布的笔记 ID，充当下一页的游标
             Optional<Long> earliestNoteId  = noteDOS.stream().map(NoteDO::getId).min(Long::compareTo);
@@ -1433,6 +1434,101 @@ public class NoteServiceImpl implements NoteService {
             }
         }
         return Response.success(findPublishedNoteListRspVO);
+    }
+
+    /**
+     * 批量获取笔记的点赞状态
+     */
+    private void batchGetAndSetNoteIsLiked(List<NoteItemRspVO> noteItemRspVOS) {
+        // 当前登录用户的 ID
+        Long loginUserId = LoginUserContextHolder.getUserId();
+        if (Objects.isNull(loginUserId)) {
+            return;
+        }
+        String rBitmapUserNoteLikeListKey = RedisKeyConstants.buildRBitmapUserNoteLikeListKey(loginUserId);
+        List<Long> noteIds = noteItemRspVOS.stream().map(NoteItemRspVO::getNoteId).toList();
+        DefaultRedisScript<List> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_batch_get_note_liked.lua")));
+        script.setResultType(List.class);
+
+        List<Long> results = redisTemplate.execute(script, Collections.singletonList(rBitmapUserNoteLikeListKey), noteIds.toArray());
+
+        // 若 Redis 中缓存不存在，下标 0 存放的标识为 -1
+        Long hasKey = results.get(0);
+        // 若 Roaring Bitmap 不存在
+        if (Objects.equals(hasKey, NoteLikeLuaResultEnum.NOT_EXIST.getCode())) {
+            // 从数据库查询
+            List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserIdAndNoteIds(loginUserId, noteIds);
+            if (CollUtil.isEmpty(noteLikeDOS)) {
+                return;
+            }
+            // DO 转 Map, 方便查询对应笔记是否点赞
+            Map<Long, NoteLikeDO> noteIdIsLikedMap = noteLikeDOS.stream()
+                    .collect(Collectors.toMap(NoteLikeDO::getNoteId, notelikeDO -> notelikeDO));
+
+            // 循环 VO 集合，设置是否点赞
+            noteItemRspVOS.forEach(noteItemRspVO -> {
+                Long currNoteId = noteItemRspVO.getNoteId();
+                NoteLikeDO noteLikeDO = noteIdIsLikedMap.get(currNoteId);
+                if (Objects.nonNull(noteLikeDO)) noteItemRspVO.setIsLiked(true);
+            });
+            // 再异步初始化 Roaring Bitmap
+            executor.execute(() -> {
+                // 随机过期时间（1小时内）
+                long expireSeconds = 60*30 + RandomUtil.randomInt(60*30);
+                batchAddNoteLike2RBitmapAndExpire(loginUserId, expireSeconds, rBitmapUserNoteLikeListKey);
+            });
+            return;
+        }
+
+        // 否则，则 Roaring Bitmap 存在
+        // 初始化一个字典，解析 Lua 结果，并设置每篇笔记是否被点赞
+        Map<Long, Boolean> likedMap = Maps.newHashMapWithExpectedSize(noteIds.size());
+        for (int i = 0; i < noteIds.size(); i++) {
+            Long currNoteId = noteIds.get(i);
+            Boolean isLiked = Objects.equals(results.get(i), 1L);
+            likedMap.put(currNoteId, isLiked);
+        }
+
+        // 循环 VO 集合，设置是否点赞
+        noteItemRspVOS.forEach(noteItemRspVO -> {
+            Long currNoteId = noteItemRspVO.getNoteId();
+            noteItemRspVO.setIsLiked(likedMap.get(currNoteId));
+        });
+    }
+
+    /**
+     * 如果是博主本人，需要调用计数服务，获取最新的点赞数据
+     */
+    private void getAndSetLatestLikeTotalIfAuthor(Long userId, List<NoteItemRspVO> sortedList) {
+        Long loginUserId = LoginUserContextHolder.getUserId();
+        // 用户已登录，并且查询的是自己
+        if (Objects.nonNull(loginUserId) && Objects.equals(loginUserId, userId)) {
+            List<Long> noteIds = sortedList.stream().map(NoteItemRspVO::getNoteId).toList();
+            List<FindNoteCountsByIdRspDTO> findNoteCountsByIdRspDTOS = countRpcService.findByNoteIds(noteIds);
+
+            // 设置笔记的点赞量
+            setVOListLikeTotal(sortedList, findNoteCountsByIdRspDTOS);
+        }
+    }
+
+    /**
+     * 设置 VO 集合中每篇笔记的点赞量
+     */
+    private static void setVOListLikeTotal(List<NoteItemRspVO> noteItemRspVOS, List<FindNoteCountsByIdRspDTO> findNoteCountsByIdRspDTOS) {
+        if (CollUtil.isNotEmpty(findNoteCountsByIdRspDTOS)) {
+            // DTO 集合转 Map
+            Map<Long, FindNoteCountsByIdRspDTO> noteIdAndDTOMap = findNoteCountsByIdRspDTOS.stream()
+                    .collect(Collectors.toMap(FindNoteCountsByIdRspDTO::getNoteId, dto -> dto));
+
+            // 循环设置 VO 集合，设置每篇笔记的点赞量
+            noteItemRspVOS.forEach(noteItemRspVO -> {
+                Long currNoteId = noteItemRspVO.getNoteId();
+                FindNoteCountsByIdRspDTO findNoteCountsByIdRspDTO = noteIdAndDTOMap.get(currNoteId);
+                noteItemRspVO.setLikeTotal((Objects.nonNull(findNoteCountsByIdRspDTO) && Objects.nonNull(findNoteCountsByIdRspDTO.getLikeTotal())) ?
+                        NumberUtils.formatNumberString(findNoteCountsByIdRspDTO.getLikeTotal()) : "0");
+            });
+        }
     }
 
     /**

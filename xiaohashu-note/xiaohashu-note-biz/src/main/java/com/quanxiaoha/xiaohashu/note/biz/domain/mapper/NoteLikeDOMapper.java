@@ -29,15 +29,17 @@ public interface NoteLikeDOMapper {
 
     /**
      * 新增笔记点赞记录，若已存在，则更新笔记点赞记录
-     * @param noteLikeDO
-     * @return
      */
     int insertOrUpdate(NoteLikeDO noteLikeDO);
 
     /**
      * 取消点赞
-     * @param noteLikeDO
-     * @return
      */
     int update2UnlikeByUserIdAndNoteId(NoteLikeDO noteLikeDO);
+
+    /**
+     * 查询某用户，对于一批量笔记的已点赞记录
+     */
+    List<NoteLikeDO> selectByUserIdAndNoteIds(@Param("userId") Long userId,
+                                              @Param("noteIds") List<Long> noteIds);
 }
